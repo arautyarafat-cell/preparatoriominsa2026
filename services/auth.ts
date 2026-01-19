@@ -1,8 +1,27 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = 'http://localhost:3001';
+/**
+ * 🛡️ SERVIÇO DE AUTENTICAÇÃO (Frontend)
+ * Angola Saúde 2026
+ * 
+ * Este serviço gerencia:
+ * - Login/Logout
+ * - Registo
+ * - Gestão de sessão
+ * - Device ID (para controlo de sessão única)
+ */
 
-// 1. Device ID Management
+// URL da API - usa variável de ambiente ou fallback para localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// ============================================================
+// GESTÃO DE DEVICE ID
+// ============================================================
+
+/**
+ * Obtém ou cria um Device ID único para este dispositivo
+ * Usado para implementar política de sessão única
+ */
 export const getDeviceId = (): string => {
     let deviceId = localStorage.getItem('device_id');
     if (!deviceId) {
@@ -12,10 +31,26 @@ export const getDeviceId = (): string => {
     return deviceId;
 };
 
-// 2. Auth Service
+// ============================================================
+// SERVIÇO DE AUTENTICAÇÃO
+// ============================================================
+
 export const authService = {
+    /**
+     * Registo de novo utilizador
+     */
     async register(email: string, password: string) {
         const deviceId = getDeviceId();
+
+        // Validação básica no frontend
+        if (!email || !password) {
+            throw new Error('Email e password são obrigatórios');
+        }
+
+        if (password.length < 6) {
+            throw new Error('Password deve ter pelo menos 6 caracteres');
+        }
+
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
@@ -25,19 +60,14 @@ export const authService = {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Registration failed');
+                throw new Error(error.error || 'Falha no registo');
             }
 
             const data = await response.json();
 
-            // If session is returned, login immediately
+            // Se sessão retornada, fazer login automático
             if (data.session) {
-                localStorage.setItem('auth_token', data.session.access_token);
-
-                // Fetch user plan
-                const plan = await this.fetchUserPlan(email);
-                const userWithPlan = { ...data.user, plan };
-                localStorage.setItem('user', JSON.stringify(userWithPlan));
+                this.persistSession(data.session.access_token, email, data.user);
             }
 
             return data;
@@ -47,8 +77,15 @@ export const authService = {
         }
     },
 
+    /**
+     * Login de utilizador
+     */
     async login(email: string, password: string) {
         const deviceId = getDeviceId();
+
+        if (!email || !password) {
+            throw new Error('Email e password são obrigatórios');
+        }
 
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
@@ -59,29 +96,118 @@ export const authService = {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Login failed');
+
+                // Tratar erro de sessão noutro dispositivo
+                if (error.code === 'DEVICE_MISMATCH') {
+                    throw new Error('A sua conta está em uso noutro dispositivo. Termine a sessão lá primeiro.');
+                }
+
+                throw new Error(error.error || 'Falha no login');
             }
 
             const data = await response.json();
 
-            // Persist Session
-            localStorage.setItem('auth_token', data.session.access_token);
+            // Persistir sessão
+            await this.persistSession(data.session.access_token, email, data.user);
 
-            // Fetch user plan
-            const planData = await this.fetchUserPlan(email);
-            const userWithPlan = { ...data.user, plan: planData.plan };
-            localStorage.setItem('user', JSON.stringify(userWithPlan));
-
-            return { ...data, user: userWithPlan };
+            return data;
         } catch (error) {
             console.error('Login error:', error);
             throw error;
         }
     },
 
+    /**
+     * Persiste a sessão e obtém dados adicionais do utilizador
+     */
+    async persistSession(accessToken: string, email: string, user: any) {
+        localStorage.setItem('auth_token', accessToken);
+
+        // Obter plano do utilizador
+        const planData = await this.fetchUserPlan(email);
+        const userWithPlan = { ...user, plan: planData.plan };
+
+        localStorage.setItem('user', JSON.stringify(userWithPlan));
+    },
+
+    /**
+     * Solicitar reset de password
+     */
+    async requestPasswordReset(email: string) {
+        if (!email) {
+            throw new Error('Email é obrigatório');
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Falha ao enviar email de recuperação');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Password reset error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Atualizar password com token
+     */
+    async updatePassword(password: string, accessToken: string) {
+        if (!password || !accessToken) {
+            throw new Error('Password e token são obrigatórios');
+        }
+
+        if (password.length < 6) {
+            throw new Error('Password deve ter pelo menos 6 caracteres');
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/auth/update-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password, accessToken })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Falha ao atualizar password');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Update password error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Obtém plano do utilizador
+     */
     async fetchUserPlan(email: string) {
         try {
-            const response = await fetch(`${API_URL}/user/plan/${encodeURIComponent(email)}`);
+            const token = this.getToken();
+            const headers: Record<string, string> = {};
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+                headers['X-Device-ID'] = getDeviceId();
+            }
+
+            const response = await fetch(
+                `${API_URL}/user/plan/${encodeURIComponent(email)}`,
+                { headers }
+            );
+
             if (response.ok) {
                 return await response.json();
             }
@@ -92,6 +218,9 @@ export const authService = {
         }
     },
 
+    /**
+     * Atualiza plano do utilizador na sessão local
+     */
     async refreshUserPlan() {
         const user = this.getUser();
         if (user && user.email) {
@@ -103,6 +232,9 @@ export const authService = {
         return user;
     },
 
+    /**
+     * Logout
+     */
     async logout() {
         const token = localStorage.getItem('auth_token');
         const deviceId = getDeviceId();
@@ -121,29 +253,108 @@ export const authService = {
             }
         }
 
+        // Limpar dados locais
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
-        window.location.reload(); // Force reset state
+
+        // Recarregar para limpar estado
+        window.location.reload();
     },
 
-    isAuthenticated() {
+    /**
+     * Verifica se utilizador está autenticado
+     */
+    isAuthenticated(): boolean {
         return !!localStorage.getItem('auth_token');
     },
 
-    getUser() {
+    /**
+     * Obtém dados do utilizador
+     */
+    getUser(): any {
         const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
+        try {
+            return userStr ? JSON.parse(userStr) : null;
+        } catch {
+            return null;
+        }
     },
 
-    getToken() {
+    /**
+     * Obtém token de autenticação
+     */
+    getToken(): string | null {
         return localStorage.getItem('auth_token');
     },
 
-    // Check if user has premium access (lite, pro, or premier)
-    hasPremiumAccess() {
+    /**
+     * Verifica se utilizador tem acesso premium
+     */
+    hasPremiumAccess(): boolean {
         const user = this.getUser();
         if (!user) return false;
         return ['lite', 'pro', 'premier'].includes(user.plan);
+    },
+
+    /**
+     * Verifica se utilizador é admin
+     */
+    isAdmin(): boolean {
+        const user = this.getUser();
+        if (!user) return false;
+
+        // Verificar role ou email em lista de admins
+        if (user.role === 'admin') return true;
+
+        // Lista local de emails admin (deve corresponder ao backend)
+        const adminEmails = ['admin@angolasaude.ao'];
+        return adminEmails.includes(user.email?.toLowerCase());
+    },
+
+    /**
+     * Obtém headers de autenticação para requests
+     */
+    getAuthHeaders(): Record<string, string> {
+        const token = this.getToken();
+        const deviceId = getDeviceId();
+
+        if (!token) return {};
+
+        return {
+            'Authorization': `Bearer ${token}`,
+            'X-Device-ID': deviceId
+        };
     }
 };
 
+// ============================================================
+// HELPER: Fazer request autenticado
+// ============================================================
+
+export async function authenticatedFetch(
+    url: string,
+    options: RequestInit = {}
+): Promise<Response> {
+    const authHeaders = authService.getAuthHeaders();
+
+    const response = await fetch(`${API_URL}${url}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders,
+            ...options.headers
+        }
+    });
+
+    // Se 401 ou 403 com código de dispositivo, fazer logout
+    if (response.status === 401 || response.status === 403) {
+        const data = await response.clone().json().catch(() => ({}));
+
+        if (data.code === 'DEVICE_MISMATCH') {
+            alert('A sua sessão foi terminada porque a conta está em uso noutro dispositivo.');
+            authService.logout();
+        }
+    }
+
+    return response;
+}

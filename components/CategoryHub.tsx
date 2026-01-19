@@ -32,6 +32,8 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
    const [showMobileMenu, setShowMobileMenu] = useState(false);
+   const [isBlocked, setIsBlocked] = useState(false);
+   const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
 
    // Initialize from localStorage to prevent flash of free plan
    const initialUser = authService.getUser();
@@ -41,6 +43,22 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
    const [hasPremium, setHasPremium] = useState(initialHasPremium);
    const [userPlan, setUserPlan] = useState<string>(initialPlan);
    const [isCheckingPlan, setIsCheckingPlan] = useState(true);
+
+   // Check if category is blocked
+   useEffect(() => {
+      const checkBlocked = async () => {
+         try {
+            const res = await fetch('http://localhost:3001/blocking/categories');
+            const data = await res.json();
+            const blocked = data.blockedCategories || [];
+            setBlockedCategories(blocked);
+            setIsBlocked(blocked.includes(category.id));
+         } catch (e) {
+            console.error('Failed to check blocked status:', e);
+         }
+      };
+      checkBlocked();
+   }, [category.id]);
 
    // Fetch fresh plan data on component mount (to catch admin updates)
    useEffect(() => {
@@ -63,12 +81,42 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
    }, []);
 
    const handlePremiumAction = (action: () => void) => {
+      if (isBlocked) {
+         return; // Don't allow any action if blocked
+      }
       if (hasPremium) {
          action();
       } else {
          setShowUpgradeModal(true);
       }
    };
+
+   // If category is blocked, show unavailable message
+   if (isBlocked) {
+      return (
+         <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center p-6">
+            <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-slate-100 text-center">
+               <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+               </div>
+               <h2 className="text-2xl font-display font-bold text-slate-900 mb-4">
+                  Trilha Indisponível
+               </h2>
+               <p className="text-slate-500 mb-6 leading-relaxed">
+                  A trilha <strong>{category.title}</strong> está temporariamente indisponível. Por favor, selecione outra trilha ou tente novamente mais tarde.
+               </p>
+               <button
+                  onClick={onBack}
+                  className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-colors"
+               >
+                  Voltar ao Início
+               </button>
+            </div>
+         </div>
+      );
+   }
 
    return (
       <div className="min-h-screen bg-slate-50 font-sans">

@@ -7,7 +7,6 @@ interface PricingProps {
 
 const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
     const plans = [
-
         {
             name: 'Pro',
             price: '2.500',
@@ -21,11 +20,11 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
                 'Tutor Virtual 24h'
             ],
             cta: 'Assinar Pro',
-            highlight: true,
-            recommended: true,
-            color: 'bg-slate-900',
-            textColor: 'text-white',
-            buttonColor: 'bg-brand-500 text-white hover:bg-brand-600'
+            highlight: false,
+            recommended: false,
+            color: 'bg-gradient-to-br from-indigo-50 to-purple-50',
+            textColor: 'text-slate-900',
+            buttonColor: 'bg-slate-900 text-white hover:bg-slate-800'
         },
         {
             name: 'Premium',
@@ -40,10 +39,11 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
                 'Acesso Antecipado a Novos Jogos'
             ],
             cta: 'Virar Premium',
-            highlight: false,
-            color: 'bg-gradient-to-br from-indigo-50 to-purple-50',
-            textColor: 'text-slate-900',
-            buttonColor: 'bg-slate-900 text-white hover:bg-slate-800'
+            highlight: true,
+            recommended: true,
+            color: 'bg-slate-900',
+            textColor: 'text-white',
+            buttonColor: 'bg-brand-500 text-white hover:bg-brand-600'
         }
     ];
 
@@ -123,7 +123,7 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
 
                 <div className="mt-20 text-center">
                     <p className="text-slate-400 text-sm">
-                        Dúvidas sobre os planos? <a href="#" className="text-brand-600 hover:underline">Fale com nossa equipe</a>
+                        Dúvidas sobre os planos? <a href="https://wa.me/244934931225" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Fale com nossa equipe</a>
                     </p>
                 </div>
             </div>

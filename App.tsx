@@ -15,6 +15,7 @@ import Pricing from './components/Pricing';
 import Payment from './components/Payment';
 import Profile from './components/Profile';
 import { Login } from './components/Login';
+import { UpdatePassword } from './components/UpdatePassword';
 import { ViewState, Category, Topic } from './types';
 import { MOCK_TOPICS, CATEGORIES } from './constants';
 import { authService } from './services/auth';
@@ -32,6 +33,16 @@ const App: React.FC = () => {
 
     // Initialize Auth and sync user plan
     useEffect(() => {
+        // Detectar rota de redefinição de senha OU hash de recuperação (magic link)
+        const hash = window.location.hash;
+        const isRecoveryHash = hash.includes('type=recovery');
+
+        if (window.location.pathname === '/update-password' || isRecoveryHash) {
+            console.log('Detectado fluxo de recuperação de senha');
+            setViewState(ViewState.UPDATE_PASSWORD);
+            return;
+        }
+
         const currentUser = authService.getUser();
         if (currentUser) {
             setUser(currentUser);
@@ -225,6 +236,12 @@ const App: React.FC = () => {
                 />
             )}
 
+            {viewState === ViewState.UPDATE_PASSWORD && (
+                <UpdatePassword
+                    onSuccess={() => setViewState(ViewState.LOGIN)}
+                />
+            )}
+
             {viewState === ViewState.PROFILE && user && (
                 <Profile
                     user={user}
@@ -249,8 +266,6 @@ const App: React.FC = () => {
                     user={user}
                 />
             )}
-
-
 
             {viewState === ViewState.CATEGORY_HUB && selectedCategory && (
                 <CategoryHub

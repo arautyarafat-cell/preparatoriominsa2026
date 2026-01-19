@@ -8,6 +8,7 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
     const [isRegistering, setIsRegistering] = useState(false);
+    const [isRecovering, setIsRecovering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -21,6 +22,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
         setLoading(true);
 
         try {
+            if (isRecovering) {
+                const data = await authService.requestPasswordReset(email);
+                setSuccessMessage(data.message || 'Email de recuperação enviado!');
+                setLoading(false);
+                return;
+            }
+
             let data;
             if (isRegistering) {
                 data = await authService.register(email, password);
@@ -43,97 +51,201 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
         }
     };
 
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50 relative p-4">
-            {/* Background Decoration */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[300px] -right-[300px] w-[800px] h-[800px] bg-brand-100/40 rounded-full blur-3xl opacity-50"></div>
-                <div className="absolute top-[20%] -left-[200px] w-[600px] h-[600px] bg-indigo-100/40 rounded-full blur-3xl opacity-50"></div>
-            </div>
+    const toggleMode = (mode: 'login' | 'register' | 'recover') => {
+        setError(null);
+        setSuccessMessage(null);
+        if (mode === 'login') {
+            setIsRegistering(false);
+            setIsRecovering(false);
+        } else if (mode === 'register') {
+            setIsRegistering(true);
+            setIsRecovering(false);
+        } else if (mode === 'recover') {
+            setIsRegistering(false);
+            setIsRecovering(true);
+        }
+    };
 
-            <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl shadow-indigo-500/10 w-full max-w-md relative z-10 border border-slate-100">
-                <div className="text-center mb-10">
-                    <div className="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-lg shadow-brand-900/20">
-                        A
-                    </div>
-                    <h2 className="text-3xl font-display font-bold text-slate-900 mb-2">
-                        {isRegistering ? 'Criar Conta' : 'Boas-vindas'}
-                    </h2>
-                    <p className="text-slate-500">
-                        {isRegistering
-                            ? 'Comece sua jornada de aprovação hoje.'
-                            : 'Entre para continuar seus estudos.'}
-                    </p>
+    return (
+        <div className="min-h-screen w-full flex bg-slate-50 relative overflow-hidden">
+            {/* Left Side - Branding & Aesthetics */}
+            <div className="hidden lg:flex w-1/2 bg-slate-900 relative items-center justify-center p-12 overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-brand-900 to-slate-900 opacity-90"></div>
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                    <div className="absolute top-1/2 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                    <div className="absolute -bottom-8 left-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all outline-none"
-                            placeholder="seu@email.com"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Senha</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all outline-none"
-                            placeholder="••••••••"
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
-                            <span>⚠️</span> {error}
-                        </div>
-                    )}
-
-                    {successMessage && (
-                        <div className="p-4 bg-green-50 text-green-600 text-sm rounded-xl border border-green-100 flex items-center gap-2">
-                            <span>✅</span> {successMessage}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 disabled:opacity-70 disabled:cursor-wait mt-4"
-                    >
-                        {loading ? 'Processando...' : (isRegistering ? 'Criar Conta' : 'Entrar')}
-                    </button>
-                </form>
-
-                <div className="mt-8 pt-8 border-t border-slate-100 text-center">
-                    <p className="text-slate-500 text-sm mb-4">
-                        {isRegistering ? 'Já tem uma conta?' : 'Ainda não tem conta?'}
+                <div className="relative z-10 max-w-lg text-left">
+                    <img src="/logo.png" alt="Logo" className="w-32 h-auto mb-8 transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl" />
+                    <h1 className="text-5xl font-display font-bold text-white mb-6 leading-tight">
+                        A sua jornada para a <span className="text-brand-400">aprovação</span> começa aqui.
+                    </h1>
+                    <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                        Junte-se a milhares de profissionais de saúde que estão a transformar a sua carreira com a melhor plataforma de preparação de Angola.
                     </p>
-                    <div className="flex flex-col gap-3">
-                        <button
-                            onClick={() => {
-                                setIsRegistering(!isRegistering);
-                                setError(null);
-                                setSuccessMessage(null);
-                            }}
-                            className="text-brand-600 font-bold hover:text-brand-700 transition-colors"
-                        >
-                            {isRegistering ? 'Fazer Login' : 'Criar uma conta grátis'}
-                        </button>
+
+                    <div className="flex gap-4">
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex-1">
+                            <div className="text-2xl font-bold text-white mb-1">10k+</div>
+                            <div className="text-slate-400 text-sm">Questões</div>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex-1">
+                            <div className="text-2xl font-bold text-white mb-1">98%</div>
+                            <div className="text-slate-400 text-sm">Aprovação</div>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex-1">
+                            <div className="text-2xl font-bold text-white mb-1">24/7</div>
+                            <div className="text-slate-400 text-sm">Suporte AI</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Side - Form */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative z-10">
+                <button
+                    onClick={onBack}
+                    className="absolute top-8 left-8 text-slate-400 hover:text-slate-700 flex items-center gap-2 transition-colors font-medium text-sm group"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Voltar
+                </button>
+
+                <div className="w-full max-w-md">
+                    <div className="text-center lg:text-left mb-10">
+                        {/* Mobile Logo */}
+                        <img src="/logo.png" alt="Logo" className="lg:hidden w-24 h-auto mx-auto mb-6 drop-shadow-xl" />
+
+                        <h2 className="text-3xl font-display font-bold text-slate-900 mb-3 tracking-wide">
+                            {isRecovering ? 'Recuperar Senha' : (isRegistering ? 'Criar Conta' : 'Bem-vindo de volta')}
+                        </h2>
+                        <p className="text-slate-500 text-lg">
+                            {isRecovering
+                                ? 'Digite o seu email para receber o link de recuperação.'
+                                : (isRegistering
+                                    ? 'Preencha os dados abaixo para começar.'
+                                    : 'Por favor, insira os seus dados para entrar.')}
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700 ml-1">Email</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="block w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-0 transition-all font-medium"
+                                    placeholder="seu@email.com"
+                                />
+                            </div>
+                        </div>
+
+                        {!isRecovering && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="block text-sm font-semibold text-slate-700">Senha</label>
+                                    {!isRegistering && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleMode('recover')}
+                                            className="text-sm text-brand-600 hover:text-brand-700 font-semibold"
+                                        >
+                                            Esqueceu a senha?
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="block w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-0 transition-all font-medium"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-3 animate-shake">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                {error}
+                            </div>
+                        )}
+
+                        {successMessage && (
+                            <div className="p-4 bg-green-50 text-green-700 text-sm rounded-xl border border-green-200 flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                {successMessage}
+                            </div>
+                        )}
 
                         <button
-                            onClick={onBack}
-                            className="text-slate-400 font-medium text-sm hover:text-slate-600 transition-colors"
+                            type="submit"
+                            disabled={loading}
+                            className={`w-full relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold py-4 rounded-xl shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 disabled:opacity-70 disabled:cursor-wait ${loading ? 'cursor-wait' : ''}`}
                         >
-                            Voltar ao início
+                            <span className={`relative z-10 flex items-center justify-center gap-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
+                                {isRecovering ? 'Enviar Link de Recuperação' : (isRegistering ? 'Criar Minha Conta' : 'Entrar na Plataforma')}
+                                {!isRecovering && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                )}
+                            </span>
+                            {loading && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                </div>
+                            )}
                         </button>
-                    </div>
+
+                        {isRecovering && (
+                            <button
+                                type="button"
+                                onClick={() => toggleMode('login')}
+                                className="w-full text-slate-500 hover:text-slate-800 font-medium py-2 transition-colors flex items-center justify-center gap-2"
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                    </form>
+
+                    {!isRecovering && (
+                        <div className="mt-10 pt-8 border-t border-slate-100 text-center">
+                            <p className="text-slate-500 mb-4 font-medium">
+                                {isRegistering ? 'Já tem uma conta?' : 'Ainda não é membro?'}
+                            </p>
+                            <button
+                                onClick={() => toggleMode(isRegistering ? 'login' : 'register')}
+                                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 transition-colors"
+                            >
+                                {isRegistering ? 'Fazer Login' : 'Criar Conta Gratuita'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

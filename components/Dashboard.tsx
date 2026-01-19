@@ -21,6 +21,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
   // Track if screen is large enough for chart (lg breakpoint = 1024px)
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -30,6 +31,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Fetch blocked categories
+  useEffect(() => {
+    const fetchBlocked = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/blocking/categories');
+        const data = await res.json();
+        setBlockedCategories(data.blockedCategories || []);
+      } catch (e) {
+        console.error('Failed to fetch blocked categories:', e);
+      }
+    };
+    fetchBlocked();
   }, []);
 
   const data = [
@@ -54,10 +69,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform duration-300">
-              <span className="relative z-10">A</span>
-              <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Angola Saúde Prep Logo"
+              className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+            />
             <div className="flex flex-col leading-none">
               <span className="font-display font-bold text-slate-900 text-lg tracking-tight">Angola Saúde</span>
               <span className="text-xs font-semibold text-brand-600 tracking-wider uppercase">Prep <span className="text-slate-400">2026</span></span>
@@ -372,40 +388,65 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => onSelectCategory(cat)}
-                className="group relative bg-white rounded-[2.5rem] p-1 text-left shadow-lg hover:shadow-2xl hover:shadow-brand-900/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden"
-              >
-                {/* Border Gradient Container */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-white rounded-[2.5rem]"></div>
-
-                {/* Card Content */}
-                <div className="relative h-full bg-white rounded-[2.3rem] p-8 overflow-hidden">
-                  {/* Hover Gradient Blob */}
-                  <div className={`absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br ${cat.color} opacity-0 group-hover:opacity-1 rounded-full blur-3xl transition-opacity duration-500`}></div>
-
-                  <div className="flex justify-between items-start mb-10">
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-xl ${cat.color} text-white group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ring-4 ring-white`}>
-                      {cat.icon}
+            {CATEGORIES.map((cat) => {
+              const isBlocked = blockedCategories.includes(cat.id);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => !isBlocked && onSelectCategory(cat)}
+                  disabled={isBlocked}
+                  className={`group relative bg-white rounded-[2.5rem] p-1 text-left shadow-lg transition-all duration-500 overflow-hidden ${isBlocked
+                    ? 'opacity-70 cursor-not-allowed'
+                    : 'hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2'
+                    }`}
+                >
+                  {/* Blocked Overlay */}
+                  {isBlocked && (
+                    <div className="absolute inset-0 z-20 bg-slate-900/10 backdrop-blur-[1px] rounded-[2.5rem] flex items-end justify-center pb-24">
+                      <div className="bg-red-500 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        Indisponível no momento
+                      </div>
                     </div>
-                    <div className="bg-slate-50 rounded-full p-2 group-hover:bg-brand-50 transition-colors">
-                      <svg className="w-6 h-6 text-slate-300 group-hover:text-brand-500 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  )}
+
+                  {/* Border Gradient Container */}
+                  <div className={`absolute inset-0 rounded-[2.5rem] ${isBlocked ? 'bg-slate-200' : 'bg-gradient-to-br from-slate-100 to-white'}`}></div>
+
+                  {/* Card Content */}
+                  <div className={`relative h-full bg-white rounded-[2.3rem] p-8 overflow-hidden ${isBlocked ? 'grayscale' : ''}`}>
+                    {/* Hover Gradient Blob */}
+                    <div className={`absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br ${cat.color} opacity-0 ${!isBlocked && 'group-hover:opacity-1'} rounded-full blur-3xl transition-opacity duration-500`}></div>
+
+                    <div className="flex justify-between items-start mb-10">
+                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-xl ${cat.color} text-white ${!isBlocked && 'group-hover:scale-110 group-hover:rotate-3'} transition-transform duration-300 ring-4 ring-white`}>
+                        {cat.icon}
+                      </div>
+                      <div className={`rounded-full p-2 ${isBlocked ? 'bg-red-50' : 'bg-slate-50 group-hover:bg-brand-50'} transition-colors`}>
+                        {isBlocked ? (
+                          <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6 text-slate-300 group-hover:text-brand-500 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                        )}
+                      </div>
+                    </div>
+
+                    <h3 className={`text-2xl font-bold font-display mb-3 transition-colors ${isBlocked ? 'text-slate-400' : 'text-slate-900 group-hover:text-brand-700'}`}>{cat.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-6 h-10 line-clamp-2">{cat.description}</p>
+
+                    <div className="flex flex-wrap gap-2 mt-auto">
+                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>📚 Material</span>
+                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>🧪 Quiz</span>
+                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>🎮 Jogo MedSim</span>
                     </div>
                   </div>
-
-                  <h3 className="text-2xl font-bold font-display text-slate-900 mb-3 group-hover:text-brand-700 transition-colors">{cat.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-6 h-10 line-clamp-2">{cat.description}</p>
-
-                  <div className="flex flex-wrap gap-2 mt-auto">
-                    <span className="text-[10px] font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">📚 Material</span>
-                    <span className="text-[10px] font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">🧪 Quiz</span>
-                    <span className="text-[10px] font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">🎮 Jogo MedSim</span>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              )
+            })}
           </div>
         </div>
 

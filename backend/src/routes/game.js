@@ -2,6 +2,8 @@ import { openai } from '../lib/openai.js';
 import { supabase } from '../lib/supabase.js';
 import { searchContext } from '../services/rag.js';
 import { config } from '../config/env.js';
+import { authenticate } from '../middleware/auth.js';
+import { aiRateLimiter, logSecurityEvent } from '../middleware/security.js';
 
 // Mapeamento de configurações por categoria/trilha de conhecimento
 const CATEGORY_CONFIGS = {
@@ -135,7 +137,11 @@ const VARIED_CONDITIONS = {
 };
 
 export default async function gameRoutes(fastify, options) {
-    fastify.post('/generate/game', async (request, reply) => {
+    // Endpoint de geração de casos clínicos - PROTEGIDO
+    // Requer autenticação e tem rate limiting específico para IA
+    fastify.post('/generate/game', {
+        preHandler: [authenticate, aiRateLimiter]
+    }, async (request, reply) => {
         const { topic, difficulty, seed, count = 1, categoryId } = request.body;
 
         if (!topic) {

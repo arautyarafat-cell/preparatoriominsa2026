@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+
+// Routes
 import uploadRoutes from './routes/upload.js';
 import quizRoutes from './routes/quiz.js';
 import flashcardRoutes from './routes/flashcards.js';
@@ -17,39 +19,131 @@ import userRoutes from './routes/users.js';
 import materialRoutes from './routes/materials.js';
 import decipherRoutes from './routes/decipher.js';
 import settingsRoutes from './routes/settings.js';
+import blockingRoutes from './routes/blocking.js';
+
+// Security Middleware
+import {
+    rateLimiter,
+    securityHeaders,
+    sanitizeBody,
+    getAllowedOrigins
+} from './middleware/security.js';
 
 export async function buildApp() {
     const fastify = Fastify({
-        logger: true
+        logger: true,
+        // Aumentar segurança do parser
+        bodyLimit: 10485760, // 10MB max body
+        caseSensitive: true
     });
 
+    // ============================================================
+    // 🛡️ CONFIGURAÇÃO DE CORS SEGURO
+    // ============================================================
+
+    const allowedOrigins = getAllowedOrigins();
+    const isProduction = process.env.NODE_ENV === 'production';
+
     await fastify.register(cors, {
-        origin: true, // Allow all origins dynamically
+        // Em produção: apenas origens permitidas
+        // Em desenvolvimento: mais permissivo
+        origin: (origin, callback) => {
+            // Permitir requests sem origin (servidor a servidor, Postman, etc.)
+            if (!origin) {
+                callback(null, true);
+                return;
+            }
+
+            if (isProduction) {
+                // Produção: verificar lista de origens permitidas
+                if (allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    fastify.log.warn(`CORS blocked origin: ${origin}`);
+                    callback(new Error('Origem não permitida'), false);
+                }
+            } else {
+                // Desenvolvimento: permitir localhost
+                if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                    callback(null, true);
+                } else {
+                    callback(null, true); // Mais permissivo em dev
+                }
+            }
+        },
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Device-ID'],
         credentials: true,
         preflight: true,
         preflightContinue: false,
-        optionsSuccessStatus: 204
+        optionsSuccessStatus: 204,
+        maxAge: 86400 // Cache preflight por 24h
     });
 
-    await fastify.register(multipart, {
-        limits: {
-            fieldNameSize: 100, // Max field name size in bytes
-            fieldSize: 1000000, // Max field value size in bytes (text fields)
-            fields: 10,         // Max number of non-file fields
-            fileSize: 10000000, // For multipart forms, the max file size in bytes (10MB)
-            files: 1            // Max number of file fields
+    // ============================================================
+    // 🛡️ HEADERS DE SEGURANÇA (Hook em todas as respostas)
+    // ============================================================
+
+    fastify.addHook('onSend', async (request, reply) => {
+        // Headers de segurança
+        reply.header('X-XSS-Protection', '1; mode=block');
+        reply.header('X-Content-Type-Options', 'nosniff');
+        reply.header('X-Frame-Options', 'DENY');
+        reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+        reply.removeHeader('X-Powered-By');
+
+        if (isProduction) {
+            reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
     });
 
-    // Health check
-    fastify.get('/', async () => {
-        return { status: 'ok', message: 'Angola Health Prep Backend API' };
+    // ============================================================
+    // 🛡️ RATE LIMITING GLOBAL
+    // ============================================================
+
+    fastify.addHook('onRequest', rateLimiter);
+
+    // ============================================================
+    // 🛡️ SANITIZAÇÃO DE INPUT
+    // ============================================================
+
+    fastify.addHook('preHandler', sanitizeBody);
+
+    // ============================================================
+    // MULTIPART (Uploads)
+    // ============================================================
+
+    await fastify.register(multipart, {
+        limits: {
+            fieldNameSize: 100,
+            fieldSize: 1000000,
+            fields: 10,
+            fileSize: 10000000, // 10MB
+            files: 1
+        }
     });
 
-    // Register routes
+    // ============================================================
+    // HEALTH CHECK
+    // ============================================================
+
+    fastify.get('/', async () => {
+        return {
+            status: 'ok',
+            message: 'Angola Health Prep Backend API',
+            version: '1.0.0',
+            environment: isProduction ? 'production' : 'development'
+        };
+    });
+
+    // ============================================================
+    // REGISTER ROUTES
+    // ============================================================
+
+    // Auth routes (public)
     fastify.register(authRoutes);
+
+    // Content routes (mostly public with some protection)
     fastify.register(uploadRoutes);
     fastify.register(quizRoutes);
     fastify.register(flashcardRoutes);
@@ -58,14 +152,65 @@ export async function buildApp() {
     fastify.register(syncRoutes);
     fastify.register(questionRoutes);
     fastify.register(contentRoutes);
-    fastify.register(lessonRoutes); // Rotas de aulas digitais
-    fastify.register(ttsRoutes);    // Rotas de Text-to-Speech com IA
-    fastify.register(paymentRoutes); // Rotas de pagamento e comprovativos
-    fastify.register(userRoutes);    // Rotas de gestão de usuários (Admin)
-    fastify.register(materialRoutes); // Rotas de materiais complementares (PDFs)
-    fastify.register(decipherRoutes); // Rotas do jogo "Decifre o Termo"
-    fastify.register(settingsRoutes); // Rotas de configurações globais
+    fastify.register(lessonRoutes);
+    fastify.register(ttsRoutes);
+    fastify.register(materialRoutes);
+    fastify.register(decipherRoutes);
+    fastify.register(settingsRoutes);
+    fastify.register(blockingRoutes);
+
+    // Payment routes (mix of public and protected)
+    fastify.register(paymentRoutes);
+
+    // Admin routes (should have additional protection)
+    fastify.register(userRoutes);
+
+    // ============================================================
+    // ERROR HANDLER GLOBAL
+    // ============================================================
+
+    fastify.setErrorHandler((error, request, reply) => {
+        // Log do erro
+        request.log.error({
+            err: error,
+            url: request.url,
+            method: request.method,
+            ip: request.ip
+        });
+
+        // Em produção, não expor detalhes do erro
+        if (isProduction) {
+            // Erros de validação podem ser expostos
+            if (error.validation) {
+                return reply.code(400).send({
+                    error: 'Dados inválidos',
+                    details: error.validation
+                });
+            }
+
+            // Erros genéricos
+            return reply.code(error.statusCode || 500).send({
+                error: 'Erro interno do servidor'
+            });
+        }
+
+        // Em desenvolvimento, mostrar detalhes
+        return reply.code(error.statusCode || 500).send({
+            error: error.message,
+            stack: error.stack
+        });
+    });
+
+    // ============================================================
+    // 404 HANDLER
+    // ============================================================
+
+    fastify.setNotFoundHandler((request, reply) => {
+        reply.code(404).send({
+            error: 'Endpoint não encontrado',
+            path: request.url
+        });
+    });
 
     return fastify;
 }
-

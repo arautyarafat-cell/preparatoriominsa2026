@@ -8,6 +8,7 @@ import { AdminGeneralSettings } from './AdminGeneralSettings';
 import { AdminPaymentSettings } from './AdminPaymentSettings';
 import AdminContactSettings from './AdminContactSettings';
 import { AdminDecipherTerms } from './AdminDecipherTerms';
+import AdminBlocking from './AdminBlocking';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -24,7 +25,7 @@ interface FileItem {
 }
 
 const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking'>('upload');
 
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -827,6 +828,11 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
                                 id: 'contact',
                                 label: 'Configurar Contatos',
                                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                            },
+                            {
+                                id: 'blocking',
+                                label: 'Bloqueios',
+                                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                             },
                         ].map((tab) => (
                             <button
@@ -1788,6 +1794,10 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
 
                     {activeTab === 'contact' && (
                         <AdminContactSettings />
+                    )}
+
+                    {activeTab === 'blocking' && (
+                        <AdminBlocking />
                     )}
 
                 </main>

@@ -56,7 +56,7 @@ export default async function authRoutes(fastify, options) {
             // If email confirmation is enabled, session might be null
             return {
                 success: true,
-                message: "Registration successful. Please check your email for confirmation."
+                message: "Registo efectuado com sucesso. Verifica a mensagem na sua caixa de spam."
             }
         }
     });
@@ -113,6 +113,54 @@ export default async function authRoutes(fastify, options) {
                 expires_in: session.expires_in
             }
         };
+    });
+
+    // Forgot Password: Sends reset link
+    fastify.post('/auth/forgot-password', async (request, reply) => {
+        const { email } = request.body;
+        const origin = request.headers.origin || 'http://localhost:3000';
+
+        if (!email) {
+            return reply.code(400).send({ error: 'Email is required' });
+        }
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${origin}/update-password`,
+        });
+
+        if (error) {
+            return reply.code(400).send({ error: error.message });
+        }
+
+        return { success: true, message: 'Link de recuperação enviado para seu email.' };
+    });
+
+    // Update Password (com token de acesso)
+    fastify.post('/auth/update-password', async (request, reply) => {
+        const { password, accessToken } = request.body;
+
+        if (!password || !accessToken) {
+            return reply.code(400).send({ error: 'Password and access token are required' });
+        }
+
+        // 1. Validar token e identificar usuário
+        const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
+
+        if (userError || !user) {
+            return reply.code(401).send({ error: 'Token inválido ou expirado.' });
+        }
+
+        // 2. Atualizar a senha
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+            user.id,
+            { password: password }
+        );
+
+        if (updateError) {
+            return reply.code(400).send({ error: updateError.message });
+        }
+
+        return { success: true, message: 'Senha atualizada com sucesso!' };
     });
 
     // Logout: Clears the session

@@ -1,8 +1,10 @@
 import { supabase } from '../lib/supabase.js';
 import { getCategoryId } from '../utils/categories.js';
+import { authenticate } from '../middleware/auth.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
+import { aiRateLimiter } from '../middleware/security.js';
 
 export default async function questionRoutes(fastify, options) {
-
 
     // ==================== CATEGORIES ====================
 

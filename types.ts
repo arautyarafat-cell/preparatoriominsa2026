@@ -114,6 +114,7 @@ export enum ViewState {
   TERMS = 'TERMS',
   HOW_IT_WORKS = 'HOW_IT_WORKS',
   CONNECTION_GAME = 'CONNECTION_GAME',
+  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
 }
 
 export interface ChatMessage {
