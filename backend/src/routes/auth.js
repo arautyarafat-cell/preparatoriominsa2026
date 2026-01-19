@@ -1,0 +1,152 @@
+import { supabase } from '../lib/supabase.js';
+import { authenticate } from '../middleware/auth.js';
+
+export default async function authRoutes(fastify, options) {
+
+    // Register: Creates a new user
+    fastify.post('/auth/register', async (request, reply) => {
+        const { email, password, deviceId } = request.body;
+
+        if (!email || !password || !deviceId) {
+            return reply.code(400).send({ error: 'Email, password, and deviceId are required' });
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+
+        if (error) {
+            return reply.code(400).send({ error: error.message });
+        }
+
+        const user = data.user;
+        const session = data.session;
+
+        // Auto-login logic (register session)
+        if (session) {
+            /*
+            const { error: sessionError } = await supabase
+                .from('user_sessions')
+                .upsert({
+                    user_id: user.id,
+                    device_id: deviceId,
+                    last_seen_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+
+            if (sessionError) {
+                request.log.error('Session registration failed', sessionError);
+            }
+            */
+
+            return {
+                success: true,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role
+                },
+                session: {
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                    expires_in: session.expires_in
+                }
+            };
+        } else {
+            // If email confirmation is enabled, session might be null
+            return {
+                success: true,
+                message: "Registration successful. Please check your email for confirmation."
+            }
+        }
+    });
+
+    // Login: Authenticates and Locks Session to Device
+    fastify.post('/auth/login', async (request, reply) => {
+        const { email, password, deviceId } = request.body;
+
+        if (!email || !password || !deviceId) {
+            return reply.code(400).send({ error: 'Email, password, and deviceId are required' });
+        }
+
+        // 1. Authenticate with Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            return reply.code(401).send({ error: error.message });
+        }
+
+        const user = data.user;
+        const session = data.session;
+
+        // 2. Register/Update Active Session for this User -> One Device Policy
+        // Uses upsert to overwrite any previous device_id for this user
+        /* 
+        TODO: Enable this when user_sessions table is created.
+        const { error: sessionError } = await supabase
+            .from('user_sessions')
+            .upsert({
+                user_id: user.id,
+                device_id: deviceId,
+                last_seen_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+
+        if (sessionError) {
+            request.log.error('Session registration failed', sessionError);
+            return reply.code(500).send({ error: 'Failed to register session' });
+        }
+        */
+
+        return {
+            success: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            },
+            session: {
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+                expires_in: session.expires_in
+            }
+        };
+    });
+
+    // Logout: Clears the session
+    fastify.post('/auth/logout', { preHandler: authenticate }, async (request, reply) => {
+        const userId = request.user.id;
+
+        // Remove session entry
+        const { error } = await supabase
+            .from('user_sessions')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) {
+            return reply.code(500).send({ error: 'Logout failed' });
+        }
+
+        // Also sign out from Supabase (invalidates the JWT on Supabase side if using RLS mostly)
+        await supabase.auth.signOut(request.headers.authorization.replace('Bearer ', ''));
+
+        return { success: true };
+    });
+
+    // Verify Session (Heartbeat)
+    fastify.get('/auth/me', { preHandler: authenticate }, async (request, reply) => {
+        // Update last seen
+        await supabase
+            .from('user_sessions')
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq('user_id', request.user.id);
+
+        return {
+            authenticated: true,
+            user: request.user,
+            deviceId: request.deviceId
+        };
+    });
+}

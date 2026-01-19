@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: angola-saude-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: mistralai/devstral-2512:free
+      - key: VOICERSS_API_KEY
+        sync: false
