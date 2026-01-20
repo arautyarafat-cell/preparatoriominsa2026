@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Header, HeaderProps } from './Header';
 import { settingsService, AppSettings } from '../services/settingsService';
 
 interface HowItWorksProps {
     onBack: () => void;
     onStart: () => void;
+    headerProps: HeaderProps;
 }
 
-const HowItWorks: React.FC<HowItWorksProps> = ({ onBack, onStart }) => {
+const HowItWorks: React.FC<HowItWorksProps> = ({ onBack, onStart, headerProps }) => {
     const [activeSection, setActiveSection] = useState(0);
     const [settings, setSettings] = useState<AppSettings>({ whatsapp: '', email: '' });
 
@@ -67,6 +69,7 @@ const HowItWorks: React.FC<HowItWorksProps> = ({ onBack, onStart }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans relative overflow-x-hidden selection:bg-brand-200 selection:text-brand-900">
+            <Header {...headerProps} />
             {/* Background Ambient Effects */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-200/20 blur-[100px] animate-pulse" />
@@ -76,20 +79,7 @@ const HowItWorks: React.FC<HowItWorksProps> = ({ onBack, onStart }) => {
             <div className="w-full max-w-7xl mx-auto px-6 py-12 relative z-10">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-16">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-200 shadow-sm hover:shadow-md"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        <span className="font-bold text-sm">Voltar</span>
-                    </button>
-
-                    <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Plataforma Oficial 2026
-                    </div>
-                </div>
+                {/* Header removed */}
 
                 {/* Hero Title */}
                 <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in-up">

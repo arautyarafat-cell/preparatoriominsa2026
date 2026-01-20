@@ -1,11 +1,13 @@
 import React from 'react';
+import { Header, HeaderProps } from './Header';
 
 interface PricingProps {
     onBack: () => void;
     onSubscribe: (plan: { name: string, price: string }) => void;
+    headerProps: HeaderProps;
 }
 
-const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
+const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe, headerProps }) => {
     const plans = [
         {
             name: 'Pro',
@@ -48,7 +50,8 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans relative overflow-hidden">
+        <div className="min-h-screen bg-slate-50 font-sans relative overflow-x-hidden">
+            <Header {...headerProps} />
             {/* Background Decorations */}
             <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-slate-200/50 to-transparent pointer-events-none"></div>
             <div className="absolute -top-[200px] -right-[200px] w-[800px] h-[800px] bg-brand-100/30 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
@@ -57,15 +60,7 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe }) => {
             <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-16">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        <span className="font-bold text-sm">Voltar</span>
-                    </button>
-                </div>
+                {/* Header removed */}
 
                 <div className="text-center max-w-3xl mx-auto mb-20">
                     <h2 className="text-brand-600 font-bold tracking-widest uppercase text-xs mb-4">Planos Flexíveis</h2>

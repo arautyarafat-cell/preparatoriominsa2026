@@ -198,6 +198,18 @@ const App: React.FC = () => {
         }
     };
 
+    const headerProps = {
+        user,
+        onLogin: () => setViewState(ViewState.LOGIN),
+        onLogout: handleLogout,
+        onEnterAdmin: handleEnterAdmin,
+        onEnterPricing: handleEnterPricing,
+        onEnterProfile: handleEnterProfile,
+        onEnterHowItWorks: handleEnterHowItWorks,
+        onSelectCategory: handleSelectCategory,
+        onGoHome: handleBackToDashboard
+    };
+
     return (
         // Applied global font, text color, and background to ensure full-page consistency
         <div className="font-sans text-slate-900 bg-slate-50 min-h-screen flex flex-col">
@@ -229,6 +241,7 @@ const App: React.FC = () => {
                 <HowItWorks
                     onBack={handleBackToDashboard}
                     onStart={() => setViewState(ViewState.DASHBOARD)}
+                    headerProps={headerProps}
                 />
             )}
 
@@ -266,6 +279,7 @@ const App: React.FC = () => {
                 <Pricing
                     onBack={handleBackToDashboard}
                     onSubscribe={handleSubscribe}
+                    headerProps={headerProps}
                 />
             )}
 
@@ -275,6 +289,7 @@ const App: React.FC = () => {
                     planName={selectedPlan?.name}
                     planPrice={selectedPlan?.price}
                     user={user}
+                    headerProps={headerProps}
                 />
             )}
 

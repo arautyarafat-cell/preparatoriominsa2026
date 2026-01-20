@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { authService } from '../services/auth';
+import { Header, HeaderProps } from './Header';
 
 interface PaymentProps {
     onBack: () => void;
     planName?: string;
     planPrice?: string;
     user?: { email: string } | null;
+    headerProps: HeaderProps;
 }
 
 interface PaymentMethod {
@@ -16,7 +18,7 @@ interface PaymentMethod {
     details: Record<string, string>;
 }
 
-const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice = '2.500', user }) => {
+const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice = '2.500', user, headerProps }) => {
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [methods, setMethods] = useState<PaymentMethod[]>([]);
     const [loadingMethods, setLoadingMethods] = useState(true);
@@ -103,23 +105,16 @@ const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice =
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans relative overflow-x-hidden">
+            <Header {...headerProps} />
             {/* Simple Modern Background */}
             <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-br from-brand-50 to-slate-50 pointer-events-none" />
             <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-200/20 blur-[100px] pointer-events-none" />
             <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-100/20 blur-[80px] pointer-events-none" />
 
-            <div className="w-full mx-auto px-[80px] py-12 relative z-10">
+            <div className="w-full mx-auto px-5 lg:px-20 py-12 relative z-10">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        <span className="font-bold text-sm">Voltar</span>
-                    </button>
-                </div>
+                {/* Header removed */}
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
