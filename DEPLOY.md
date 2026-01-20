@@ -1,13 +1,58 @@
 # 🚀 GUIA DE DEPLOY - Angola Saúde 2026
 
+## 📋 Arquitetura de Deploy
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      VERCEL (Frontend)                       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  React + Vite App                                     │   │
+│  │  - Headers de segurança (CSP, HSTS, X-Frame-Options) │   │
+│  │  - Cache otimizado para assets estáticos             │   │
+│  │  - Build minificado sem console.logs                 │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                 │
+│                            ▼                                 │
+│                    VITE_API_URL                              │
+└────────────────────────────┼────────────────────────────────┘
+                             │ HTTPS + CORS
+┌────────────────────────────┼────────────────────────────────┐
+│                            ▼                                 │
+│                    RENDER (Backend)                          │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Fastify API                                          │   │
+│  │  - trustProxy ativo (processa X-Forwarded-For)       │   │
+│  │  - Rate limiting por IP real                          │   │
+│  │  - CORS restritivo                                    │   │
+│  │  - Headers de segurança                               │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                 │
+│                            ▼                                 │
+│                    SUPABASE_URL                              │
+└────────────────────────────┼────────────────────────────────┘
+                             │
+┌────────────────────────────┼────────────────────────────────┐
+│                            ▼                                 │
+│                      SUPABASE                                │
+│  - PostgreSQL com RLS                                        │
+│  - Auth (autenticação)                                       │
+│  - Storage (ficheiros)                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 📋 PRÉ-REQUISITOS
 
 Antes de fazer deploy, certifique-se que:
 
 - ✅ Node.js 18+ instalado
 - ✅ Conta Supabase com projeto criado
-- ✅ Conta no serviço de hosting (Render/Railway para backend, Vercel para frontend)
-- ✅ Auditoria de segurança concluída (ver `SECURITY_AUDIT.md`)
+- ✅ Conta Render.com (backend)
+- ✅ Conta Vercel (frontend)
+- ✅ Repositório Git configurado
 
 ---
 
@@ -15,161 +60,212 @@ Antes de fazer deploy, certifique-se que:
 
 ### Antes do Deploy:
 
-- [x] **RLS ativado em todas as tabelas** ✅ (migration aplicada)
-- [x] **Políticas RLS seguras criadas** ✅ (utilizadores só acedem aos seus dados)
-- [x] **Rate limiting implementado** ✅ (middleware de segurança)
-- [x] **Endpoints admin protegidos** ✅ (requireAdmin middleware)
+- [x] **RLS ativado em todas as tabelas** ✅
+- [x] **Políticas RLS seguras criadas** ✅
+- [x] **Rate limiting implementado** ✅ (seguro para reverse proxies)
+- [x] **Endpoints admin protegidos** ✅
 - [ ] **Regenerar chaves expostas** ⚠️ (Ver secção abaixo)
-- [ ] **Verificar .gitignore** ✅
+- [x] **Verificar .gitignore** ✅
 - [ ] **Ativar Leaked Password Protection** no Supabase Dashboard
 - [ ] **Configurar variáveis de ambiente** nos serviços de hosting
 
 ### ⚠️ AÇÃO CRÍTICA: Regenerar Chaves
 
-As seguintes chaves foram expostas durante o desenvolvimento e **DEVEM ser regeneradas**:
+As seguintes chaves DEVEM ser regeneradas antes do deploy:
 
 1. **Supabase Service Role Key**
-   - Ir a: Supabase Dashboard > Settings > API > Service Role Key
-   - Clicar em "Regenerate"
-   - Atualizar em todos os ambientes
+   - Dashboard > Settings > API > Service Role Key > Regenerate
 
 2. **OpenRouter API Key** 
-   - Ir a: https://openrouter.ai/keys
-   - Revogar chave atual e criar nova
+   - https://openrouter.ai/keys > Revogar antiga > Criar nova
    
-3. **VoiceRSS API Key**
-   - Ir a: http://www.voicerss.org/
-   - Regenerar chave na conta
+3. **VoiceRSS API Key** (se usar TTS)
+   - http://www.voicerss.org/ > Account > Regenerar
 
 ---
 
-## 🖥️ DEPLOY DO BACKEND (Render/Railway)
+## 🖥️ DEPLOY DO BACKEND (Render.com)
 
-### Opção A: Render.com
+### Passo 1: Criar Web Service
 
-1. **Criar conta e novo Web Service**
-   - Conectar repositório GitHub
-   - Root Directory: `backend`
-   - Build Command: `npm install`
-   - Start Command: `npm start`
+1. Acesse [Render Dashboard](https://dashboard.render.com)
+2. Clique em **New** > **Web Service**
+3. Conecte seu repositório GitHub
+4. Configure:
+   - **Name:** `angola-saude-backend`
+   - **Root Directory:** `backend`
+   - **Runtime:** Node
+   - **Build Command:** `npm ci --omit=dev`
+   - **Start Command:** `npm start`
 
-2. **Configurar Variáveis de Ambiente**
-   ```
-   NODE_ENV=production
-   PORT=10000
-   SUPABASE_URL=https://rgnzrcuredtbwcnnimta.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=<nova-chave-regenerada>
-   OPENROUTER_API_KEY=<nova-chave-regenerada>
-   AI_MODEL=google/gemini-2.0-flash-exp:free
-   VOICERSS_API_KEY=<nova-chave-regenerada>
-   ADMIN_EMAILS=admin@angolasaude.ao
-   FRONTEND_URL=https://seu-frontend.vercel.app
-   ALLOWED_ORIGINS=https://seu-frontend.vercel.app
-   ```
+### Passo 2: Configurar Variáveis de Ambiente
 
-3. **Deploy**
-   - O deploy é automático após push para o branch principal
+No Render Dashboard > Environment, adicione:
 
-### Opção B: Railway.app
+| Variável | Valor | Descrição |
+|----------|-------|-----------|
+| `NODE_ENV` | `production` | Ativa modo produção |
+| `PORT` | `10000` | Porta padrão do Render |
+| `SUPABASE_URL` | `https://xxx.supabase.co` | URL do Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Chave regenerada |
+| `FRONTEND_URL` | `https://xxx.vercel.app` | URL do frontend |
+| `ALLOWED_ORIGINS` | `https://xxx.vercel.app` | Origens permitidas |
+| `OPENROUTER_API_KEY` | `sk-or-...` | Chave de IA |
+| `AI_MODEL` | `google/gemini-2.0-flash-exp:free` | Modelo IA |
+| `VOICERSS_API_KEY` | `xxx` | Chave TTS (opcional) |
+| `ADMIN_EMAILS` | `admin@email.com` | Emails de admins |
 
-1. Criar projeto e conectar repo
-2. Configurar variáveis como acima
-3. Deploy automático
+### Passo 3: Deploy
+
+- O deploy é automático após push para o branch principal
+- Verifique os logs no Dashboard
+
+### Passo 4: Verificar
+
+```bash
+# Health check
+curl https://seu-backend.onrender.com/
+
+# Deve retornar:
+# {"status":"ok","message":"Angola Health Prep Backend API","version":"1.0.0","environment":"production"}
+```
 
 ---
 
 ## 🌐 DEPLOY DO FRONTEND (Vercel)
 
-1. **Criar conta Vercel e importar projeto**
-   - Conectar repositório GitHub
-   - Framework Preset: Vite
-   - Root Directory: `/` (raiz)
+### Passo 1: Importar Projeto
 
-2. **Configurar Variáveis de Ambiente**
-   ```
-   VITE_API_URL=https://seu-backend.onrender.com
-   ```
+1. Acesse [Vercel Dashboard](https://vercel.com/dashboard)
+2. Clique em **Add New** > **Project**
+3. Importe seu repositório GitHub
+4. Configure:
+   - **Framework Preset:** Vite
+   - **Root Directory:** `/` (raiz)
 
-3. **Deploy**
-   - Automático após push
+### Passo 2: Configurar Variáveis de Ambiente
+
+No Vercel Dashboard > Settings > Environment Variables:
+
+| Variável | Valor |
+|----------|-------|
+| `VITE_API_URL` | `https://seu-backend.onrender.com` |
+
+### Passo 3: Deploy
+
+- O deploy é automático após push
+- Verifique o preview URL
 
 ---
 
-## 📦 DEPLOY SUPABASE
+## 🔒 DETALHES DE SEGURANÇA
 
-O Supabase já está configurado. Certifique-se de:
+### Rate Limiting Configurado
 
-1. **Verificar RLS**
-   ```sql
-   SELECT tablename, rowsecurity 
-   FROM pg_tables 
-   WHERE schemaname = 'public';
-   ```
-   Todas as tabelas devem ter `rowsecurity = true`
+O rate limiting está configurado para funcionar atrás de reverse proxies:
 
-2. **Ativar Leaked Password Protection**
-   - Dashboard > Authentication > Providers > Email
-   - Ativar "Leaked password protection"
+| Tipo | Limite | Janela |
+|------|--------|--------|
+| **Geral** | 100 req | 15 min |
+| **Autenticação** | 10 req | 15 min |
+| **IA** | 30 req | 1 hora |
+| **Admin** | 50 req | 15 min |
+| **Upload** | 20 req | 1 hora |
 
-3. **Configurar Storage Policies**
-   - Storage > proofs > Policies
-   - Adicionar política de upload apenas para authenticated
+### Headers de Segurança (Frontend)
+
+O `vercel.json` inclui:
+- `Strict-Transport-Security` (HSTS com preload)
+- `Content-Security-Policy` (CSP restritivo)
+- `X-Frame-Options: DENY` (anti-clickjacking)
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` (restringe APIs sensíveis)
+
+### TrustProxy (Backend)
+
+O Fastify está configurado com `trustProxy: true` em produção, permitindo:
+- Obter IP real do cliente via `X-Forwarded-For`
+- Protocolo correto (`https`) via `X-Forwarded-Proto`
+- Rate limiting baseado no IP real, não no IP do proxy
 
 ---
 
 ## ✅ VERIFICAÇÃO PÓS-DEPLOY
 
-### 1. Testar Endpoints Protegidos
+### 1. Testar Rate Limiting
 
 ```bash
-# Deve retornar 401 (não autorizado)
-curl https://seu-backend.onrender.com/users
-
-# Deve retornar 429 após muitos requests (rate limiting)
-for i in {1..150}; do curl -s https://seu-backend.onrender.com/ > /dev/null; done
+# Fazer 15+ requests de login - deve bloquear após 10
+for i in {1..15}; do
+  curl -s -X POST https://backend.onrender.com/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@test.com","password":"wrong"}' | jq .
+done
 ```
 
-### 2. Testar RLS
+### 2. Testar CORS
 
 ```bash
-# Deve retornar array vazio ou erro (não dados de outros users)
-curl -X GET "https://rgnzrcuredtbwcnnimta.supabase.co/rest/v1/user_profiles" \
-  -H "apikey: SUA_ANON_KEY" \
-  -H "Authorization: Bearer TOKEN_DE_OUTRO_USER"
+# Deve falhar (origem não permitida)
+curl -H "Origin: https://evil-site.com" \
+  https://backend.onrender.com/users
 ```
 
-### 3. Testar CORS
+### 3. Testar Headers de Segurança
 
 ```bash
-# Deve falhar se origem não permitida
-curl -H "Origin: https://site-malicioso.com" \
-  https://seu-backend.onrender.com/users
+curl -I https://frontend.vercel.app | grep -E "(X-Frame|X-Content|Strict-Transport|Content-Security)"
 ```
+
+### 4. Testar Funcionalidades
+
+- [ ] Login/Registro funcionam
+- [ ] Quiz carrega perguntas
+- [ ] Flashcards funcionam
+- [ ] Upload de comprovante funciona
+- [ ] Área admin acessível (para admins)
 
 ---
 
 ## 🔄 MANUTENÇÃO
 
-### Monitorização
+### Monitoramento
 
-1. **Logs do Backend** - Render/Railway Dashboard
+1. **Logs do Backend** - Render Dashboard > Logs
 2. **Logs do Supabase** - Dashboard > Logs
-3. **Alertas** - Configurar notificações de erro
+3. **Métricas** - Render Dashboard > Metrics
 
 ### Atualizações de Segurança
 
-1. Executar `npm audit` regularmente
-2. Atualizar dependências com vulnerabilidades
-3. Revisar logs de autenticação semanalmente
+```bash
+# Backend
+cd backend
+npm audit
+npm audit fix
+
+# Frontend
+npm audit
+npm audit fix
+```
+
+### Em Caso de Incidente
+
+1. **Chave exposta:** Regenerar IMEDIATAMENTE
+2. **Ataque DDoS:** Aumentar rate limiting
+3. **Breach:** Revogar todos os tokens, forçar reset de senhas
 
 ---
 
 ## 📞 SUPORTE
 
-Em caso de problemas de segurança, contactar imediatamente:
+Em caso de problemas de segurança:
 - Email: security@angolasaude.ao
-- Telefone: +244 XXX XXX XXX
+- Status pages:
+  - https://status.supabase.com
+  - https://render-status.com
+  - https://www.vercel-status.com
 
 ---
 
-**Última atualização:** 19 de Janeiro de 2026
+**Última atualização:** 20 de Janeiro de 2026

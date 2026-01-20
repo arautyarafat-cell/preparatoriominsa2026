@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { authService } from '../services/auth';
 
 interface PaymentProps {
     onBack: () => void;
@@ -77,6 +78,9 @@ const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice =
 
             const response = await fetch('http://localhost:3001/payments/proof', {
                 method: 'POST',
+                headers: {
+                    ...authService.getAuthHeaders()
+                },
                 body: formData
             });
 

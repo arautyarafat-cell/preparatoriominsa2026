@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 
 // URL da API - usa variável de ambiente ou fallback para localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // ============================================================
 // GESTÃO DE DEVICE ID
@@ -67,7 +67,7 @@ export const authService = {
 
             // Se sessão retornada, fazer login automático
             if (data.session) {
-                this.persistSession(data.session.access_token, email, data.user);
+                this.persistSession(data.session.access_token, email, data.user, data.session.refresh_token);
             }
 
             return data;
@@ -108,7 +108,7 @@ export const authService = {
             const data = await response.json();
 
             // Persistir sessão
-            await this.persistSession(data.session.access_token, email, data.user);
+            await this.persistSession(data.session.access_token, email, data.user, data.session.refresh_token);
 
             return data;
         } catch (error) {
@@ -119,14 +119,34 @@ export const authService = {
 
     /**
      * Persiste a sessão e obtém dados adicionais do utilizador
+     * NOTA: Usa fetch directo para plano para evitar dependência circular
      */
-    async persistSession(accessToken: string, email: string, user: any) {
+    async persistSession(accessToken: string, email: string, user: any, refreshToken?: string) {
         localStorage.setItem('auth_token', accessToken);
+        if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken);
+        }
 
-        // Obter plano do utilizador
-        const planData = await this.fetchUserPlan(email);
+        // Obter plano do utilizador (fetch directo para evitar loop com authenticatedFetch)
+        let planData = { plan: 'free', plan_activated_at: null };
+        try {
+            const response = await fetch(
+                `${API_URL}/user/plan/${encodeURIComponent(email)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'X-Device-ID': getDeviceId()
+                    }
+                }
+            );
+            if (response.ok) {
+                planData = await response.json();
+            }
+        } catch (e) {
+            console.warn('Failed to fetch plan during session persist:', e);
+        }
+
         const userWithPlan = { ...user, plan: planData.plan };
-
         localStorage.setItem('user', JSON.stringify(userWithPlan));
     },
 
@@ -192,6 +212,7 @@ export const authService = {
 
     /**
      * Obtém plano do utilizador
+     * NOTA: Usa fetch directo para evitar loops com authenticatedFetch
      */
     async fetchUserPlan(email: string) {
         try {
@@ -255,6 +276,7 @@ export const authService = {
 
         // Limpar dados locais
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
 
         // Recarregar para limpar estado
@@ -285,6 +307,57 @@ export const authService = {
      */
     getToken(): string | null {
         return localStorage.getItem('auth_token');
+    },
+
+    /**
+     * Obtém refresh token
+     */
+    getRefreshToken(): string | null {
+        return localStorage.getItem('refresh_token');
+    },
+
+    /**
+     * Tenta renovar a sessão usando refresh token
+     * NOTA: Não chama persistSession para evitar loop circular
+     */
+    async refreshSession(): Promise<string | null> {
+        const refreshToken = this.getRefreshToken();
+        if (!refreshToken) return null;
+
+        try {
+            const response = await fetch(`${API_URL}/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken })
+            });
+
+            if (!response.ok) {
+                // Refresh falhou - limpar tokens mas não fazer logout completo (evita loop)
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refresh_token');
+                return null;
+            }
+
+            const data = await response.json();
+            if (data.session) {
+                // Guardar novos tokens directamente (sem chamar persistSession)
+                localStorage.setItem('auth_token', data.session.access_token);
+                if (data.session.refresh_token) {
+                    localStorage.setItem('refresh_token', data.session.refresh_token);
+                }
+                // Actualizar user data se disponível
+                if (data.user) {
+                    const currentUser = this.getUser();
+                    const updatedUser = { ...currentUser, ...data.user };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+                return data.session.access_token;
+            }
+            return null;
+        } catch (e) {
+            console.error('Refresh token failed:', e);
+            return null;
+        }
     },
 
     /**
@@ -335,9 +408,9 @@ export async function authenticatedFetch(
     url: string,
     options: RequestInit = {}
 ): Promise<Response> {
-    const authHeaders = authService.getAuthHeaders();
+    let authHeaders = authService.getAuthHeaders();
 
-    const response = await fetch(`${API_URL}${url}`, {
+    let response = await fetch(`${API_URL}${url}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -346,7 +419,25 @@ export async function authenticatedFetch(
         }
     });
 
-    // Se 401 ou 403 com código de dispositivo, fazer logout
+    // Se 401, tentar refresh token
+    if (response.status === 401) {
+        const newToken = await authService.refreshSession();
+
+        if (newToken) {
+            // Tentar novamente com novas credenciais
+            authHeaders = authService.getAuthHeaders();
+            response = await fetch(`${API_URL}${url}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                    ...options.headers
+                }
+            });
+        }
+    }
+
+    // Se 401 ou 403 (ainda falhando), verificar device mismatch
     if (response.status === 401 || response.status === 403) {
         const data = await response.clone().json().catch(() => ({}));
 

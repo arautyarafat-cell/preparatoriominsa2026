@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { authService } from '../services/auth';
 
 interface AdminDecipherTermsProps {
     categories: any[];
@@ -65,7 +66,9 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
         try {
             let url = `${BACKEND_URL}/decipher-terms`;
             if (selectedCategory) url += `?category_id=${selectedCategory}`;
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: authService.getAuthHeaders()
+            });
             const data = await res.json();
             setTerms(data.data || []);
         } catch (error) {
@@ -86,7 +89,10 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
         try {
             const res = await fetch(`${BACKEND_URL}/decipher-terms`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     term,
                     hint,
@@ -120,7 +126,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
 
         try {
             const res = await fetch(`${BACKEND_URL}/decipher-terms/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
             });
 
             if (res.ok) {
@@ -147,7 +154,10 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
             let url = `${BACKEND_URL}/decipher-terms/bulk`;
             if (selectedCategory) url += `?category_id=${selectedCategory}`;
 
-            const res = await fetch(url, { method: 'DELETE' });
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
+            });
 
             if (res.ok) {
                 setTerms([]);
@@ -188,7 +198,10 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
         try {
             const res = await fetch(`${BACKEND_URL}/decipher-terms/${editingTerm.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     term: editTerm,
                     hint: editHint,
@@ -271,7 +284,10 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
         try {
             const res = await fetch(`${BACKEND_URL}/decipher-terms/import`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     terms: extractedTerms,
                     category_id: selectedCategory || null
@@ -399,8 +415,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
                                                 type="button"
                                                 onClick={() => setDifficulty(d.value as any)}
                                                 className={`py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${difficulty === d.value
-                                                        ? 'border-brand-500 bg-brand-50 text-brand-700'
-                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                                                     }`}
                                             >
                                                 {d.emoji} {d.label}
@@ -413,8 +429,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
                                     type="submit"
                                     disabled={submitting}
                                     className={`w-full py-3 rounded-xl font-bold text-white transition-all ${submitting
-                                            ? 'bg-slate-400 cursor-not-allowed'
-                                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-indigo-500/25'
+                                        ? 'bg-slate-400 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-indigo-500/25'
                                         }`}
                                 >
                                     {submitting ? 'Salvando...' : '➕ Adicionar Termo'}
@@ -477,8 +493,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
                                             onClick={handleBulkImport}
                                             disabled={isImporting}
                                             className={`w-full py-3 rounded-xl font-bold text-white ${isImporting
-                                                    ? 'bg-slate-400'
-                                                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                                                ? 'bg-slate-400'
+                                                : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
                                                 }`}
                                         >
                                             {isImporting ? 'Importando...' : '📥 Importar Todos'}
@@ -675,8 +691,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
                                             type="button"
                                             onClick={() => setEditDifficulty(d.value as any)}
                                             className={`py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${editDifficulty === d.value
-                                                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                                ? 'border-brand-500 bg-brand-50 text-brand-700'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                                                 }`}
                                         >
                                             {d.emoji} {d.label}
@@ -710,8 +726,8 @@ export const AdminDecipherTerms: React.FC<AdminDecipherTermsProps> = ({ categori
                                 onClick={handleUpdate}
                                 disabled={isUpdating}
                                 className={`flex-1 py-3 rounded-xl font-bold text-white ${isUpdating
-                                        ? 'bg-slate-400'
-                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+                                    ? 'bg-slate-400'
+                                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
                                     }`}
                             >
                                 {isUpdating ? 'Salvando...' : 'Salvar Alterações'}

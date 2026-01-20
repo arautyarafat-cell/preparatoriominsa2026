@@ -17,6 +17,7 @@ import { logSecurityEvent } from './security.js';
 // Em produção, mover para variável de ambiente ou tabela de BD
 const ADMIN_EMAILS = [
     'admin@angolasaude.ao',
+    'arautyarafat@gmail.com',
     // Adicionar mais emails admin conforme necessário
 ];
 

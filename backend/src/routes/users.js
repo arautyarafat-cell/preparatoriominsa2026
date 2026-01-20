@@ -1,11 +1,123 @@
 import { supabase } from '../lib/supabase.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { authenticate } from '../middleware/auth.js';
 
 /**
  * 🛡️ ROTAS DE GESTÃO DE UTILIZADORES
- * TODAS as rotas neste ficheiro requerem permissões de ADMIN
+ * TODAS as rotas neste ficheiro requerem permissões de ADMIN (excepto /users/me/stats)
  */
 export default async function userRoutes(fastify, options) {
+
+    /**
+     * GET /users/me/stats
+     * Obtém estatísticas de atividade do utilizador autenticado
+     * REQUER AUTENTICAÇÃO (utilizador normal)
+     */
+    fastify.get('/users/me/stats', { preHandler: authenticate }, async (request, reply) => {
+        try {
+            const userId = request.user?.id;
+
+            if (!userId) {
+                return reply.code(401).send({ error: 'Utilizador não autenticado' });
+            }
+
+            // 1. Obter histórico de quizzes do utilizador
+            let quizHistory = [];
+            let totalQuizzes = 0;
+            let totalCorrect = 0;
+            let totalQuestions = 0;
+
+            try {
+                const { data: quizData, error: quizError } = await supabase
+                    .from('user_quiz_history')
+                    .select('id, category_id, topic, total_questions, created_at, score')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (!quizError && quizData) {
+                    quizHistory = quizData;
+                    totalQuizzes = quizData.length;
+
+                    // Calcular estatísticas
+                    quizData.forEach(q => {
+                        if (q.score !== null && q.score !== undefined) {
+                            totalCorrect += q.score;
+                        }
+                        if (q.total_questions) {
+                            totalQuestions += q.total_questions;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('[UserStats] Quiz history fetch failed:', e.message);
+            }
+
+            // 2. Obter histórico de flashcards do utilizador
+            let flashcardHistory = [];
+            let totalFlashcardsReviewed = 0;
+
+            try {
+                const { data: flashcardData, error: flashcardError } = await supabase
+                    .from('user_flashcard_history')
+                    .select('id, category_id, cards_reviewed, mastered, created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (!flashcardError && flashcardData) {
+                    flashcardHistory = flashcardData;
+                    totalFlashcardsReviewed = flashcardData.reduce((acc, s) => acc + (s.cards_reviewed || 0), 0);
+                }
+            } catch (e) {
+                console.warn('[UserStats] Flashcard history fetch failed:', e.message);
+            }
+
+            // 3. Calcular taxa de acerto média
+            const averageScore = totalQuestions > 0
+                ? Math.round((totalCorrect / totalQuestions) * 100)
+                : 0;
+
+            // 4. Formatar resposta
+            const formattedQuizHistory = quizHistory.map(q => ({
+                id: q.id,
+                category: q.topic || 'Quiz',
+                score: q.score || 0,
+                total: q.total_questions || 0,
+                date: new Date(q.created_at).toLocaleDateString('pt-PT', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                })
+            }));
+
+            const formattedFlashcardHistory = flashcardHistory.map(f => ({
+                id: f.id,
+                category: 'Flashcards',
+                cardsReviewed: f.cards_reviewed || 0,
+                mastered: f.mastered || 0,
+                date: new Date(f.created_at).toLocaleDateString('pt-PT', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                })
+            }));
+
+            return {
+                quizHistory: formattedQuizHistory,
+                flashcardHistory: formattedFlashcardHistory,
+                stats: {
+                    totalQuizzes,
+                    totalFlashcardsReviewed,
+                    averageScore
+                }
+            };
+
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Erro ao obter estatísticas do utilizador' });
+        }
+    });
 
     /**
      * GET /users
@@ -157,6 +269,73 @@ export default async function userRoutes(fastify, options) {
     });
 
     /**
+     * POST /users
+     * Cria um novo utilizador
+     * ADMIN ONLY
+     */
+    fastify.post('/users', { preHandler: requireAdmin }, async (request, reply) => {
+        const { email, password, plan = 'free' } = request.body;
+        const adminUser = request.user;
+
+        if (!email || !password) {
+            return reply.code(400).send({ error: 'Email e password são obrigatórios' });
+        }
+
+        try {
+            // Criar utilizador no Auth
+            const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: true
+            });
+
+            if (createError) throw createError;
+
+            // Criar perfil com plano
+            const { error: profileError } = await supabase
+                .from('user_profiles')
+                .insert({
+                    user_id: user.id,
+                    email: email,
+                    plan,
+                    plan_activated_at: plan !== 'free' ? new Date().toISOString() : null,
+                    created_by: adminUser.email
+                });
+
+            if (profileError) {
+                // Se falhar o perfil, talvez devêssemos avisar, mas o user Auth foi criado.
+                request.log.error('Erro ao criar perfil:', profileError);
+                // Não abortamos totalmente pois o user Auth existe, mas retornamos warning?
+                // Melhor: lançar erro para cair no catch e retornar 500
+                throw profileError;
+            }
+
+            // Log
+            request.log.info({
+                event: 'ADMIN_CREATE_USER',
+                adminEmail: adminUser.email,
+                newUserEmail: email,
+                plan
+            });
+
+            return {
+                success: true,
+                message: 'Utilizador criado com sucesso',
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    created_at: user.created_at,
+                    plan
+                }
+            };
+
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Falha ao criar utilizador: ' + error.message });
+        }
+    });
+
+    /**
      * PUT /users/:id/plan
      * Atualiza o plano de um utilizador manualmente
      * ADMIN ONLY
@@ -200,7 +379,7 @@ export default async function userRoutes(fastify, options) {
 
             if (existingProfile) {
                 // Atualizar perfil existente
-                await supabase
+                const { error: updateError } = await supabase
                     .from('user_profiles')
                     .update({
                         plan,
@@ -209,16 +388,21 @@ export default async function userRoutes(fastify, options) {
                         updated_by: adminUser.email
                     })
                     .eq('email', email);
+
+                if (updateError) throw updateError;
             } else {
                 // Criar novo perfil
-                await supabase
+                const { error: insertError } = await supabase
                     .from('user_profiles')
                     .insert({
+                        user_id: id,
                         email: email,
                         plan,
                         plan_activated_at: plan !== 'free' ? new Date().toISOString() : null,
                         created_by: adminUser.email
                     });
+
+                if (insertError) throw insertError;
             }
 
             // Log de auditoria

@@ -1,12 +1,18 @@
 {
     "name": "angola-saude-backend",
     "version": "1.0.0",
-    "description": "Backend API for Angola Saude Prep",
+    "description": "Backend API for Angola Saude Prep - Medical Exam Preparation Platform",
     "main": "server.js",
     "type": "module",
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "scripts": {
         "start": "node server.js",
-        "dev": "node --watch server.js"
+        "dev": "node --watch server.js",
+        "audit": "npm audit --production",
+        "audit:fix": "npm audit fix --production",
+        "check:security": "grep -r 'sk-' src/ || echo 'No API keys found in source'"
     },
     "keywords": [],
     "author": "",

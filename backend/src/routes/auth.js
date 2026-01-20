@@ -25,7 +25,6 @@ export default async function authRoutes(fastify, options) {
 
         // Auto-login logic (register session)
         if (session) {
-            /*
             const { error: sessionError } = await supabase
                 .from('user_sessions')
                 .upsert({
@@ -37,7 +36,6 @@ export default async function authRoutes(fastify, options) {
             if (sessionError) {
                 request.log.error('Session registration failed', sessionError);
             }
-            */
 
             return {
                 success: true,
@@ -84,8 +82,6 @@ export default async function authRoutes(fastify, options) {
 
         // 2. Register/Update Active Session for this User -> One Device Policy
         // Uses upsert to overwrite any previous device_id for this user
-        /* 
-        TODO: Enable this when user_sessions table is created.
         const { error: sessionError } = await supabase
             .from('user_sessions')
             .upsert({
@@ -98,7 +94,6 @@ export default async function authRoutes(fastify, options) {
             request.log.error('Session registration failed', sessionError);
             return reply.code(500).send({ error: 'Failed to register session' });
         }
-        */
 
         return {
             success: true,
@@ -195,6 +190,31 @@ export default async function authRoutes(fastify, options) {
             authenticated: true,
             user: request.user,
             deviceId: request.deviceId
+        };
+    });
+
+    // Refresh Token: Get new access token using refresh token
+    fastify.post('/auth/refresh', async (request, reply) => {
+        const { refresh_token } = request.body;
+
+        if (!refresh_token) {
+            return reply.code(400).send({ error: 'Refresh token required' });
+        }
+
+        const { data, error } = await supabase.auth.refreshSession({ refresh_token });
+
+        if (error || !data.session) {
+            return reply.code(401).send({ error: 'Invalid or expired refresh token' });
+        }
+
+        return {
+            success: true,
+            session: {
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+                expires_in: data.session.expires_in
+            },
+            user: data.user
         };
     });
 }

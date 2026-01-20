@@ -23,7 +23,11 @@ import TermsAndPrivacy from './components/TermsAndPrivacy';
 import HowItWorks from './components/HowItWorks';
 import { EXEMPLO_AULA_POLITRAUMATIZADO } from './types/lessonExamples';
 
+import { Preloader } from './components/Preloader';
+import { IconSprite } from './components/icons';
+
 const App: React.FC = () => {
+    const [loading, setLoading] = useState(true);
     const [viewState, setViewState] = useState<ViewState>(ViewState.DASHBOARD);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
@@ -40,7 +44,8 @@ const App: React.FC = () => {
         if (window.location.pathname === '/update-password' || isRecoveryHash) {
             console.log('Detectado fluxo de recuperação de senha');
             setViewState(ViewState.UPDATE_PASSWORD);
-            return;
+            // Even if recovery, we might want to let the preloader finish or force finish it?
+            // Let's let the preloader run its course as "app init".
         }
 
         const currentUser = authService.getUser();
@@ -57,6 +62,10 @@ const App: React.FC = () => {
             });
         }
     }, []);
+
+    if (loading) {
+        return <Preloader onComplete={() => setLoading(false)} />;
+    }
 
     // 1. Selection from Main Dashboard -> Goes to Category Hub or Login
     const handleSelectCategory = (category: Category) => {
@@ -192,6 +201,8 @@ const App: React.FC = () => {
     return (
         // Applied global font, text color, and background to ensure full-page consistency
         <div className="font-sans text-slate-900 bg-slate-50 min-h-screen flex flex-col">
+            {/* SVG Sprite - definições de ícones disponíveis globalmente */}
+            <IconSprite />
 
             {viewState === ViewState.DASHBOARD && (
                 <Dashboard

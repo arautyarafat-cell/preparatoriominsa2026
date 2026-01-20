@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Category, Flashcard } from '../types';
 import { generateFlashcards } from '../services/geminiService';
+import { authService } from '../services/auth';
 
 interface FlashcardAreaProps {
     category: Category;
@@ -15,6 +16,35 @@ const FlashcardArea: React.FC<FlashcardAreaProps> = ({ category, onExit }) => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [completed, setCompleted] = useState(false);
     const [stats, setStats] = useState({ mastered: 0, review: 0 });
+    const [resultsSent, setResultsSent] = useState(false);
+
+    // Submit flashcard results when session is completed
+    useEffect(() => {
+        if (completed && !resultsSent && cards.length > 0) {
+            const submitResults = async () => {
+                try {
+                    const headers = {
+                        ...authService.getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    };
+                    await fetch('http://localhost:3001/flashcards/result', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            category_id: category.id,
+                            cards_reviewed: cards.length,
+                            mastered: stats.mastered
+                        })
+                    });
+                    console.log('[FlashcardArea] Results submitted successfully');
+                    setResultsSent(true);
+                } catch (error) {
+                    console.error('[FlashcardArea] Failed to submit results:', error);
+                }
+            };
+            submitResults();
+        }
+    }, [completed, resultsSent, cards.length, stats.mastered, category.id]);
 
     useEffect(() => {
         const loadCards = async () => {
@@ -107,6 +137,7 @@ const FlashcardArea: React.FC<FlashcardAreaProps> = ({ category, onExit }) => {
         setCurrentIndex(0);
         setCompleted(false);
         setIsFlipped(false);
+        setResultsSent(false); // Reset so new session can submit
         // Optionally shuffle cards here
     };
 

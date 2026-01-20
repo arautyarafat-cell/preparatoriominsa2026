@@ -11,6 +11,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
     const [isRecovering, setIsRecovering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -78,7 +79,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                 </div>
 
                 <div className="relative z-10 max-w-lg text-left">
-                    <img src="/logo.png" alt="Logo" className="w-32 h-auto mb-8 transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl" />
+                    <div className="bg-white p-4 rounded-3xl mb-8 inline-block shadow-2xl shadow-brand-900/20 transform hover:scale-105 transition-transform duration-500">
+                        <img src="/logo.png" alt="Logo" className="w-32 h-auto" />
+                    </div>
                     <h1 className="text-5xl font-display font-bold text-white mb-6 leading-tight">
                         A sua jornada para a <span className="text-brand-400">aprovação</span> começa aqui.
                     </h1>
@@ -92,8 +95,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                             <div className="text-slate-400 text-sm">Questões</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex-1">
-                            <div className="text-2xl font-bold text-white mb-1">98%</div>
-                            <div className="text-slate-400 text-sm">Aprovação</div>
+                            <div className="text-2xl font-bold text-white mb-1">+80%</div>
+                            <div className="text-slate-400 text-sm leading-tight">Probabilidade de Aprovação</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex-1">
                             <div className="text-2xl font-bold text-white mb-1">24/7</div>
@@ -118,7 +121,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                 <div className="w-full max-w-md">
                     <div className="text-center lg:text-left mb-10">
                         {/* Mobile Logo */}
-                        <img src="/logo.png" alt="Logo" className="lg:hidden w-24 h-auto mx-auto mb-6 drop-shadow-xl" />
+                        <div className="lg:hidden bg-white p-3 rounded-2xl mx-auto mb-6 inline-block shadow-lg">
+                            <img src="/logo.png" alt="Logo" className="w-24 h-auto" />
+                        </div>
 
                         <h2 className="text-3xl font-display font-bold text-slate-900 mb-3 tracking-wide">
                             {isRecovering ? 'Recuperar Senha' : (isRegistering ? 'Criar Conta' : 'Bem-vindo de volta')}
@@ -173,13 +178,30 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                                         </svg>
                                     </div>
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-0 transition-all font-medium"
+                                        className="block w-full pl-11 pr-12 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-0 transition-all font-medium"
                                         placeholder="••••••••"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         )}

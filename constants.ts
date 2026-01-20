@@ -2,6 +2,15 @@ import { CategoryId, Category, Topic, StudyStats } from './types';
 
 export const CATEGORIES: Category[] = [
   {
+    id: CategoryId.TEC_ENFERMAGEM,
+    title: 'Téc. Enfermagem',
+    description: 'Procedimentos Básicos e Cuidados ao Paciente',
+    icon: '🩹',
+    color: 'bg-emerald-500',
+    totalQuestions: 1000,
+    totalTopics: 100,
+  },
+  {
     id: CategoryId.MEDICO,
     title: 'Médico',
     description: 'Clínica Geral, Especialidades e Saúde Pública',
@@ -18,15 +27,6 @@ export const CATEGORIES: Category[] = [
     color: 'bg-teal-600',
     totalQuestions: 1500,
     totalTopics: 150,
-  },
-  {
-    id: CategoryId.TEC_ENFERMAGEM,
-    title: 'Téc. Enfermagem',
-    description: 'Procedimentos Básicos e Cuidados ao Paciente',
-    icon: '🩹',
-    color: 'bg-emerald-500',
-    totalQuestions: 1000,
-    totalTopics: 100,
   },
   {
     id: CategoryId.TEC_FARMACIA,

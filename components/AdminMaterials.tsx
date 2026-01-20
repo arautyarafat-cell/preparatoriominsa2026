@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { authService } from '../services/auth';
 
 interface AdminMaterialsProps {
     categories: any[];
@@ -33,7 +34,9 @@ export const AdminMaterials: React.FC<AdminMaterialsProps> = ({ categories }) =>
         try {
             let url = 'http://localhost:3001/materials';
             if (selectedCategory) url += `?category_id=${selectedCategory}`;
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: authService.getAuthHeaders()
+            });
             const data = await res.json();
             setMaterials(data.data || []);
         } catch (error) {
@@ -56,6 +59,7 @@ export const AdminMaterials: React.FC<AdminMaterialsProps> = ({ categories }) =>
         try {
             const res = await fetch('http://localhost:3001/materials', {
                 method: 'POST',
+                headers: authService.getAuthHeaders(), // For FormData, typically we don't set Content-Type as browser does it with boundary, but we need Auth
                 body: formData
             });
 
@@ -79,7 +83,10 @@ export const AdminMaterials: React.FC<AdminMaterialsProps> = ({ categories }) =>
     const handleDelete = async (id: string) => {
         if (!confirm('Tem certeza que deseja apagar este material?')) return;
         try {
-            await fetch(`http://localhost:3001/materials/${id}`, { method: 'DELETE' });
+            await fetch(`http://localhost:3001/materials/${id}`, {
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
+            });
             fetchMaterials();
         } catch (error) {
             console.error(error);

@@ -9,6 +9,8 @@ import { AdminPaymentSettings } from './AdminPaymentSettings';
 import AdminContactSettings from './AdminContactSettings';
 import { AdminDecipherTerms } from './AdminDecipherTerms';
 import AdminBlocking from './AdminBlocking';
+import { AdminYoutubeSettings } from './AdminYoutubeSettings';
+
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -25,7 +27,7 @@ interface FileItem {
 }
 
 const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking' | 'youtube'>('upload');
 
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -799,6 +801,12 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
                                 label: 'Aulas Digitais',
                                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                             },
+                            {
+                                id: 'youtube',
+                                label: 'Gestão de Vídeos',
+                                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            },
+
                             {
                                 id: 'users',
                                 label: 'Gerenciar Usuários',
@@ -1798,6 +1806,10 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
 
                     {activeTab === 'blocking' && (
                         <AdminBlocking />
+                    )}
+
+                    {activeTab === 'youtube' && (
+                        <AdminYoutubeSettings />
                     )}
 
                 </main>

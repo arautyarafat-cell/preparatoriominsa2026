@@ -171,37 +171,33 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
          <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
 
             {/* Navigation */}
-            {/* Navigation & Category Switch */}
-            <div className="flex items-center justify-between mb-8">
+            {/* Mobile Header Moderno */}
+            <div className="flex items-center justify-between mb-8 md:mb-12">
                <button
                   onClick={onBack}
                   className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
                >
-                  <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center group-hover:border-slate-400 transition-all">
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                  <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center group-hover:border-slate-400 transition-all shadow-sm">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                   </div>
-                  <span className="text-sm font-bold">Voltar ao Início</span>
+                  <span className="hidden md:inline font-bold">Voltar ao Início</span>
+                  <span className="md:hidden font-bold text-slate-700">Voltar</span>
                </button>
 
-               {/* Category Dropdown & Hamburger */}
                <div className="flex items-center gap-3">
+                  {/* Category Switcher - Minimal */}
                   <div className="relative">
                      <button
                         onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm"
                      >
-                        <span>{category.icon}</span>
-                        <span className="hidden sm:inline">{category.title}</span>
-                        <svg
-                           className={`w-4 h-4 text-slate-400 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
-                           fill="none"
-                           stroke="currentColor"
-                           viewBox="0 0 24 24"
-                        >
+                        <span className="text-xl">{category.icon}</span>
+                        <svg className={`w-4 h-4 text-slate-400 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                      </button>
 
+                     {/* Dropdown Content */}
                      {showCategoryDropdown && (
                         <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-[100]">
                            <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
@@ -244,46 +240,36 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
                            </div>
                         </div>
                      )}
-
                   </div>
 
-                  {/* Hamburger Button */}
                   <button
                      onClick={() => setShowMobileMenu(true)}
-                     className="p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
-                     title="Menu de Trilhas"
-                     aria-label="Abrir Menu"
+                     className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 shadow-sm"
                   >
                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                      </svg>
                   </button>
                </div>
-
-
             </div>
 
             {/* Mobile Menu Side Drawer */}
             {showMobileMenu && (
                <div className="fixed inset-0 z-[110] flex justify-end">
-                  {/* Backdrop */}
                   <div
                      className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
                      onClick={() => setShowMobileMenu(false)}
                   ></div>
-
-                  {/* Drawer */}
-                  <div className="relative w-full max-w-sm bg-white h-full shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+                  <div className="relative w-full max-w-xs bg-white h-full shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
                      <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-display font-bold text-slate-900">Trilhas de Conhecimento</h2>
+                        <h2 className="text-xl font-bold text-slate-900">Trilhas</h2>
                         <button
                            onClick={() => setShowMobileMenu(false)}
-                           className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+                           className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
                         >
                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                      </div>
-
                      <div className="flex flex-col gap-3">
                         {categories && categories.map((cat) => (
                            <button
@@ -292,26 +278,14 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
                                  onSelectCategory(cat);
                                  setShowMobileMenu(false);
                               }}
-                              className={`flex items-center gap-4 w-full p-4 rounded-2xl transition-all border ${category.id === cat.id ? 'bg-brand-50 border-brand-200 shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200'}`}
+                              className={`flex items-center gap-4 w-full p-4 rounded-2xl transition-all border ${category.id === cat.id ? 'bg-brand-50 border-brand-200 shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
                            >
-                              <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center text-white text-xl shadow-md shrink-0`}>
+                              <div className={`w-10 h-10 rounded-xl ${cat.color} flex items-center justify-center text-white text-lg`}>
                                  {cat.icon}
                               </div>
-                              <div className="text-left flex-1">
-                                 <div className={`font-bold text-lg ${category.id === cat.id ? 'text-brand-900' : 'text-slate-900'}`}>
-                                    {cat.title}
-                                 </div>
-                                 <div className={`text-sm ${category.id === cat.id ? 'text-brand-600' : 'text-slate-500'}`}>
-                                    {cat.totalQuestions} questões
-                                 </div>
+                              <div className="text-left flex-1 font-bold text-slate-700">
+                                 {cat.title}
                               </div>
-                              {category.id === cat.id && (
-                                 <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                 </div>
-                              )}
                            </button>
                         ))}
                      </div>
@@ -319,33 +293,34 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
                </div>
             )}
 
+            {/* Hero Section - Image Match */}
+            <div className="flex flex-row items-center md:items-start gap-6 mb-12 animate-fade-in px-2">
+               <div className={`w-24 h-24 md:w-32 md:h-32 rounded-[2rem] ${category.color} flex items-center justify-center text-5xl md:text-6xl shadow-2xl shadow-brand-900/10 rotate-[-3deg] shrink-0`}>
+                  {category.icon}
+               </div>
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12 animate-fade-in">
-               <div className="flex items-center gap-6">
-                  <div className={`w-24 h-24 rounded-3xl ${category.color} flex items-center justify-center text-5xl shadow-2xl shadow-brand-900/10`}>
-                     {category.icon}
-                  </div>
-                  <div>
-                     <h1 className="text-4xl font-display font-bold text-slate-900">{category.title}</h1>
-                     <p className="text-slate-500 text-lg">{category.description}</p>
-                     <div className="flex gap-3 mt-3">
-                        <span className="bg-green-50 px-3 py-1 rounded-full border border-green-100 text-xs font-bold text-green-600 uppercase tracking-wider">
-                           IA Ativa
+               <div className="flex-1">
+                  <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900 leading-[1.1] mb-2">
+                     {category.title.replace('Lic.', '').replace('Téc.', 'Téc.\n')}
+                  </h1>
+                  <p className="text-slate-500 font-medium text-sm md:text-lg leading-relaxed mb-4 max-w-lg">
+                     {category.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 md:gap-3">
+                     <span className="bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-wider shadow-sm">
+                        IA Ativa
+                     </span>
+                     {!hasPremium && (
+                        <span className="bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 text-[10px] md:text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                           Plano Gratuito
                         </span>
-                        {!hasPremium && (
-                           <span className="bg-amber-50 px-3 py-1 rounded-full border border-amber-100 text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
-                              {isCheckingPlan && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
-                              Plano Gratuito
-                           </span>
-                        )}
-                        {hasPremium && (
-                           <span className="bg-brand-50 px-3 py-1 rounded-full border border-brand-100 text-xs font-bold text-brand-600 uppercase tracking-wider flex items-center gap-1.5">
-                              {isCheckingPlan && <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>}
-                              {userPlan.toUpperCase()}
-                           </span>
-                        )}
-                     </div>
+                     )}
+                     {hasPremium && (
+                        <span className="bg-brand-50 px-3 py-1.5 rounded-full border border-brand-100 text-[10px] md:text-xs font-bold text-brand-600 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                           {userPlan.toUpperCase()}
+                        </span>
+                     )}
                   </div>
                </div>
             </div>
@@ -356,40 +331,50 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
                {/* Left Column: Aula + Game */}
                <div className="lg:col-span-2 flex flex-col gap-8">
 
-                  {/* 1. Aulas Digitais - Top Left (PREMIUM) */}
+                  {/* 1. Aulas Digitais - Modern Card Style */}
                   <div
                      onClick={() => handlePremiumAction(onEnterLesson)}
-                     className={`flex-1 group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-600 to-brand-800 p-10 cursor-pointer shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-brand-900/30 hover:-translate-y-1 min-h-[320px] flex flex-col justify-between ${!hasPremium ? 'ring-2 ring-amber-400/50' : ''}`}
+                     className={`flex-1 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0088CC] to-[#006699] p-8 md:p-10 cursor-pointer shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-sky-900/30 hover:-translate-y-1 min-h-[380px] flex flex-col justify-between group ${!hasPremium ? 'ring-2 ring-amber-400/50' : ''}`}
                   >
-                     <div className="absolute inset-0 bg-gradient-to-r from-brand-400/10 to-cyan-400/10 opacity-40"></div>
-                     <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-white/10 blur-3xl animate-pulse"></div>
-                     <div className="absolute -left-10 -bottom-10 h-60 w-60 rounded-full bg-cyan-400/20 blur-3xl"></div>
+                     {/* Background Elements */}
+                     <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-[60px] -mr-20 -mt-20 pointer-events-none"></div>
+                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/20 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
 
-                     {!hasPremium && (
-                        <div className="absolute top-4 right-4 bg-amber-500 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg">
-                           <span>🔒</span> Premium
-                        </div>
-                     )}
-
-                     <div className="relative z-10">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white border border-white/20 mb-6 backdrop-blur-sm">
-                           <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+                     {/* Top Badges */}
+                     <div className="relative z-10 flex justify-between items-start mb-6 gap-4">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wider text-white border border-white/20 backdrop-blur-sm shadow-sm">
+                           <span className="h-2 w-2 rounded-full bg-cyan-300 animate-pulse"></span>
                            Novo Sistema
                         </div>
-                        <h3 className="text-4xl font-display font-bold text-white mb-4">
-                           Aulas Digitais Interactivas
+
+                        {!hasPremium ? (
+                           <div className="bg-amber-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 animate-bounce-subtle">
+                              <span>🔒</span> Premium
+                           </div>
+                        ) : (
+                           <div className="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold">
+                              Acesso Liberado
+                           </div>
+                        )}
+                     </div>
+
+                     {/* Main Content */}
+                     <div className="relative z-10 flex-1 flex flex-col justify-center">
+                        <h3 className="text-4xl md:text-[3.5rem] font-display font-bold text-white mb-6 leading-[0.95] tracking-tight">
+                           Aulas Digitais <br /> Interactivas
                         </h3>
-                        <p className="text-white/80 max-w-xl leading-relaxed text-lg mb-8">
-                           Aprenda com slides inteligentes, audio explicativo e aulas conversacionais. Sistema completo com quiz integrado.
+                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-sm font-medium">
+                           Aprenda com slides inteligentes, áudio explicativo e aulas conversacionais.
+                           Sistema completo com quiz integrado.
                         </p>
                      </div>
-                     <div className="relative z-10 flex items-center justify-between mt-auto">
-                        <span className="text-white/60 text-sm font-medium">
-                           Slides + Audio + Quiz
-                        </span>
-                        <span className="bg-white text-brand-700 px-8 py-4 rounded-2xl font-bold flex items-center gap-3 group-hover:bg-brand-50 transition-colors shadow-lg text-lg">
-                           <span className="text-2xl">📚</span> Iniciar Aula
-                        </span>
+
+                     {/* Bottom Action */}
+                     <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+                        <span className="text-white/70 text-sm font-bold tracking-wide uppercase">Conteúdo Completo</span>
+                        <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white group-hover:bg-white group-hover:text-[#0088CC] transition-all transform group-hover:scale-110 shadow-lg border border-white/10">
+                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </div>
                      </div>
                   </div>
 

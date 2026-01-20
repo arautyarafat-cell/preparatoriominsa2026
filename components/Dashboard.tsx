@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CATEGORIES, MOCK_STATS, MOCK_TOPICS } from '../constants';
 import { Category, Topic } from '../types';
+import { Icon } from './icons';
 
-import { BarChart, Bar, XAxis, Tooltip, Cell, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+
 
 interface DashboardProps {
   onSelectCategory: (category: Category) => void;
@@ -22,6 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
+  const [featuredVideoId, setFeaturedVideoId] = useState<string>('LXb3EKWsInQ'); // Default video
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -45,6 +47,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
       }
     };
     fetchBlocked();
+  }, []);
+
+  // Fetch featured video setting
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/settings');
+        const data = await res.json();
+        if (data.featured_video_url) {
+          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+          const match = data.featured_video_url.match(regExp);
+          if (match && match[2].length === 11) {
+            setFeaturedVideoId(match[2]);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch settings:', e);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const data = [
@@ -71,12 +93,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <img
               src="/logo.png"
-              alt="Angola Saúde Prep Logo"
+              alt="Minsa Preparatório Logo"
               className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
             />
             <div className="flex flex-col leading-none">
-              <span className="font-display font-bold text-slate-900 text-lg tracking-tight">Angola Saúde</span>
-              <span className="text-xs font-semibold text-brand-600 tracking-wider uppercase">Prep <span className="text-slate-400">2026</span></span>
+              <span className="font-display font-bold text-slate-900 text-sm md:text-lg tracking-tight">Minsa Preparatório</span>
+              <span className="text-[10px] md:text-xs font-semibold text-brand-600 tracking-wider uppercase">2026</span>
             </div>
           </div>
 
@@ -87,7 +109,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-4">
+          {/* Action Buttons & Mobile Menu */}
+          <div className="flex items-center gap-2 md:gap-4">
             {user && user.email === 'arautyarafat@gmail.com' && (
               <button
                 onClick={onEnterAdmin}
@@ -96,153 +119,143 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                 Admin Panel
               </button>
             )}
+
             {user ? (
-              <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+              <div className="flex items-center gap-2 md:gap-3 md:pl-4 md:border-l border-slate-200">
                 <button
                   onClick={onEnterProfile}
                   className="group flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-700 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-100 to-brand-50 flex items-center justify-center text-brand-700 font-bold text-sm border-2 border-white ring-2 ring-brand-100 shadow-sm group-hover:scale-105 transition-transform">
+                  <div className="w-10 h-10 md:w-9 md:h-9 rounded-full bg-slate-100 md:bg-gradient-to-tr md:from-brand-100 md:to-brand-50 flex items-center justify-center text-slate-700 md:text-brand-700 font-bold text-xs md:text-sm border border-slate-200 md:border-2 md:border-white md:ring-2 md:ring-brand-100 shadow-sm group-hover:scale-105 transition-transform">
                     {user.email?.[0]?.toUpperCase()}
                   </div>
                   <span className="hidden md:inline-block group-hover:underline decoration-2 underline-offset-4 decoration-brand-200">{user.email.split('@')[0]}</span>
                 </button>
+
                 <button
                   onClick={onLogout}
-                  className="p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                  className="hidden md:block p-1.5 md:p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
                   title="Sair"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1" /></svg>
+                  <Icon name="logout" size="md" />
                 </button>
               </div>
             ) : (
               <button
                 onClick={onLogin}
-                className="group relative px-6 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold overflow-hidden shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:-translate-y-0.5 transition-all duration-300"
+                className="group relative px-4 py-2 md:px-6 md:py-2.5 rounded-xl bg-slate-900 text-white text-xs md:text-sm font-bold overflow-hidden shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:-translate-y-0.5 transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span className="relative">Acessar Plataforma</span>
+                <span className="relative">Acessar</span>
               </button>
             )}
-          </div>
 
-          {/* Hamburger Button (Mobile) */}
-          <button
-            onClick={() => setShowMobileMenu(true)}
-            className="md:hidden p-2 bg-white/50 backdrop-blur-md rounded-xl text-slate-700 active:bg-slate-100 transition-colors ml-2"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+            {/* Hamburger Button (Mobile) */}
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="md:hidden p-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 active:bg-slate-100 transition-colors"
+            >
+              <Icon name="menu" size="md" />
+            </button>
+          </div>
         </div>
 
 
       </header>
 
-      {/* Mobile Menu Drawer - Modern Redesign */}
+      {/* Mobile Menu Drawer */}
       {showMobileMenu && (
         <div className="fixed inset-0 z-[100] flex justify-end md:hidden">
-          {/* Blur Backdrop */}
+          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
             onClick={() => setShowMobileMenu(false)}
-          ></div>
+          />
 
-          {/* Drawer Content */}
-          <div className="relative w-[85%] max-w-sm bg-white h-full shadow-[0_0_50px_rgba(0,0,0,0.2)] flex flex-col transform transition-transform duration-300">
+          {/* Drawer */}
+          <div className="relative w-[85%] max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
 
-            {/* Header with Gradient */}
-            <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/2 -translate-y-1/2">
-                <div className="w-32 h-32 rounded-full bg-white blur-2xl"></div>
-              </div>
-
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex flex-col">
-                  <span className="font-display font-bold text-2xl tracking-tight">Menu</span>
-                  <span className="text-slate-400 text-xs font-medium uppercase tracking-wider mt-1">Navegação</span>
+            {/* Header Dark: Logo + Horizontal Nav */}
+            <div className="bg-[#1A1F2C] flex flex-col shrink-0 pb-2">
+              {/* Top Row: Logo + Close */}
+              <div className="px-6 pt-8 pb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src="/logo.png" alt="Minsa Logo" className="w-8 h-8 object-contain brightness-0 invert opacity-90" />
+                  <div>
+                    <h2 className="text-xl font-display font-bold text-white leading-none">Minsa</h2>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest leading-none mt-0.5">Preparatório</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowMobileMenu(false)}
-                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all backdrop-blur-md"
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <Icon name="x" size="md" />
+                </button>
+              </div>
+
+              {/* Horizontal Navigation Tabs */}
+              <div className="flex items-center gap-6 px-6 mt-4 overflow-x-auto no-scrollbar scroll-smooth">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="text-white text-xs font-bold uppercase tracking-widest hover:text-brand-400 transition-colors border-b-2 border-white pb-2"
+                >
+                  INÍCIO
+                </button>
+                <button
+                  onClick={() => { setShowMobileMenu(false); onEnterPricing(); }}
+                  className="text-white/60 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors border-b-2 border-transparent pb-2"
+                >
+                  PLANOS
+                </button>
+                <button
+                  onClick={() => { setShowMobileMenu(false); onEnterHowItWorks(); }}
+                  className="text-white/60 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors border-b-2 border-transparent pb-2 whitespace-nowrap"
+                >
+                  COMO FUNCIONA
                 </button>
               </div>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-
-              {/* Main Links */}
-              <div className="flex flex-col gap-2">
-                <button onClick={() => { setShowMobileMenu(false); }} className="flex items-center gap-4 p-4 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:text-brand-600 transition-all group border border-transparent hover:border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                  </div>
-                  <span className="text-lg">Início</span>
-                  <svg className="w-5 h-5 ml-auto text-slate-300 group-hover:text-brand-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </button>
-
-                <button onClick={() => { setShowMobileMenu(false); onEnterPricing(); }} className="flex items-center gap-4 p-4 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:text-brand-600 transition-all group border border-transparent hover:border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  </div>
-                  <span className="text-lg">Planos e Preços</span>
-                  <svg className="w-5 h-5 ml-auto text-slate-300 group-hover:text-brand-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </button>
-
-                <button onClick={() => { setShowMobileMenu(false); onEnterHowItWorks(); }} className="flex items-center gap-4 p-4 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:text-brand-600 transition-all group border border-transparent hover:border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  </div>
-                  <span className="text-lg">Como Funciona</span>
-                  <svg className="w-5 h-5 ml-auto text-slate-300 group-hover:text-brand-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </div>
-
-              {/* Categories Divider */}
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-slate-100"></div>
-                </div>
-                <div className="relative flex justify-start">
-                  <span className="bg-white pr-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Trilhas de Estudo</span>
-                </div>
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-white">
+              {/* Divider / Title */}
+              <div className="mb-6 flex items-center gap-4">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Trilhas de Estudo</span>
+                <div className="h-px bg-slate-100 w-full"></div>
               </div>
 
               {/* Categories List */}
-              <div className="grid grid-cols-1 gap-3">
-                {CATEGORIES.map((cat) => (
+              <div className="flex flex-col gap-3 pb-6">
+                {CATEGORIES.map(cat => (
                   <button
                     key={cat.id}
-                    onClick={() => { setShowMobileMenu(false); onSelectCategory(cat); }}
-                    className="group flex items-center gap-4 p-3 rounded-2xl bg-white border border-slate-100 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/5 transition-all"
+                    onClick={() => { onSelectCategory(cat); setShowMobileMenu(false); }}
+                    className="flex items-center gap-4 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-md transition-all group"
                   >
-                    <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center text-white text-xl shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform`}>
+                    <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center text-white text-xl shadow-lg shrink-0`}>
                       {cat.icon}
                     </div>
-                    <div className="text-left flex-1">
-                      <div className="font-bold text-slate-800 text-sm group-hover:text-brand-700 transition-colors">{cat.title}</div>
-                      <div className="text-[10px] text-slate-400 font-medium">{cat.totalQuestions} questões</div>
+                    <div className="flex-1 text-left">
+                      <div className="font-bold text-slate-900 text-base">{cat.title}</div>
+                      <div className="text-[10px] text-slate-400 font-bold">{cat.totalQuestions} questões</div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-brand-50 group-hover:text-brand-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-slate-500 transition-colors">
+                      <Icon name="chevron-right" size="sm" />
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Footer / User */}
+            {/* Sticky Footer */}
             {user && (
-              <div className="p-6 bg-slate-50 border-t border-slate-100 mt-auto">
+              <div className="p-6 bg-white border-t border-slate-50 z-10">
                 <button
-                  onClick={() => { setShowMobileMenu(false); onLogout(); }}
-                  className="w-full p-4 bg-white border border-slate-200 text-red-500 font-bold rounded-2xl hover:bg-red-50 hover:border-red-100 hover:text-red-600 transition-all flex items-center justify-center gap-2 shadow-sm"
+                  onClick={() => { onLogout(); setShowMobileMenu(false); }}
+                  className="w-full py-4 rounded-2xl border border-red-100 bg-white text-red-500 font-bold flex items-center justify-center gap-3 hover:bg-red-50 hover:border-red-200 transition-all shadow-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1" /></svg>
+                  <Icon name="logout" size="md" />
                   <span>Sair da Conta</span>
                 </button>
               </div>
@@ -256,36 +269,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
 
           {/* Left Content */}
-          <div className="text-center lg:text-left space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-brand-100/50 backdrop-blur text-brand-700 text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md transition-shadow cursor-default">
+          <div className="text-center lg:text-left space-y-6 lg:space-y-8 animate-fade-in relative z-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 border border-sky-100/50 text-sky-700 text-[10px] lg:text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md transition-shadow cursor-default">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
               </span>
-              Preparatório Oficial 2026
+              Preparatório de Excelência
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-display font-extrabold text-slate-900 tracking-tight leading-[1.1]">
-              Aprovação garantida <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-cyan-500 to-teal-500 animate-gradient-x">
+            <h1 className="text-5xl lg:text-7xl font-display font-extrabold text-slate-900 tracking-tight leading-[1.05]">
+              Aprovação <br className="lg:hidden" /> garantida <br />
+              <span className="text-sky-500">
                 na palma da mão.
               </span>
             </h1>
 
-            <p className="text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-light">
+            <p className="text-base lg:text-xl text-slate-500 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
               Escolha sua área de atuação e tenha acesso a materiais exclusivos, simulados inteligentes e jogos clínicos para dominar o concurso público.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <button
                 onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="w-full sm:w-auto px-8 py-4 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-bold shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 hover:-translate-y-1 transition-all duration-300"
+                className="w-full sm:w-auto px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-sky-500/20 hover:shadow-sky-500/30 hover:-translate-y-1 transition-all duration-300"
               >
                 Começar Agora
               </button>
               <button
                 onClick={onEnterHowItWorks}
-                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 hover:text-brand-600 rounded-2xl font-bold border border-slate-200 shadow-sm hover:border-brand-200 hover:bg-brand-50/50 transition-all duration-300"
+                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-500 hover:text-sky-600 rounded-2xl font-bold border border-slate-200 shadow-sm hover:border-sky-100 hover:bg-sky-50/30 transition-all duration-300"
               >
                 Saiba Mais
               </button>
@@ -293,64 +305,61 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
 
             <div className="pt-4 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 font-medium">
               <span className="flex items-center gap-1">
-                <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                <Icon name="check-circle" size="md" className="text-emerald-500" />
                 Material Atualizado
               </span>
               <span className="flex items-center gap-1">
-                <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                <Icon name="check-circle" size="md" className="text-emerald-500" />
                 IA Integrada
               </span>
             </div>
           </div>
 
-          {/* Right Visual - Stats - Only render chart on large screens */}
-          {isLargeScreen && (
-            <div className="relative group">
-              {/* Floating Elements Background */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-200/50 rounded-full blur-2xl animate-pulse"></div>
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-pink-200/50 rounded-full blur-2xl animate-pulse animation-delay-1000"></div>
+          {/* Right Visual - Video Card - Desktop */}
+          <div className="relative group hidden lg:block">
+            {/* Floating Elements Background */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-200/50 rounded-full blur-2xl animate-pulse"></div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-pink-200/50 rounded-full blur-2xl animate-pulse animation-delay-1000"></div>
 
-              <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-2xl transition-all duration-500 group-hover:shadow-3xl">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="font-display font-bold text-slate-900 flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center">📊</span>
-                    Estatísticas da Plataforma
-                  </h3>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Ao Vivo</span>
-                </div>
+            <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/60 shadow-2xl transition-all duration-500 group-hover:shadow-3xl">
+              <div className="mb-6 text-center">
+                <h3 className="font-display font-bold text-slate-900 text-xl">Conheça a Plataforma</h3>
+              </div>
 
-                <div className="w-full flex justify-center h-[320px]">
-                  <BarChart
-                    width={450}
-                    height={300}
-                    data={data}
-                    layout="vertical"
-                    margin={{ top: 0, right: 30, left: 40, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      tick={{ fill: '#475569', fontSize: 12, fontWeight: 600, fontFamily: 'Plus Jakarta Sans' }}
-                      width={80}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(255,255,255,0.4)' }}
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px', fontFamily: 'Inter', background: 'rgba(255,255,255,0.95)' }}
-                    />
-                    <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28}>
-                      {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </div>
+              <div className="w-full relative pt-[56.25%] rounded-2xl overflow-hidden shadow-lg border border-white/50">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${featuredVideoId}?autoplay=1&mute=1&controls=1&loop=1&playlist=${featuredVideoId}&rel=0&modestbranding=1&showinfo=0&cc_load_policy=0&iv_load_policy=3`}
+                  title="Apresentação Minsa Preparatório"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                ></iframe>
+                {/* Overlay for better integration (optional) */}
+                <div className="absolute inset-0 ring-1 ring-black/5 rounded-2xl pointer-events-none"></div>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Video Card - Mobile */}
+          <div className="lg:hidden mt-10 relative">
+            <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 border border-white/60 shadow-xl">
+              <div className="mb-4 text-center">
+                <h3 className="font-display font-bold text-slate-900 text-lg">Conheça a Plataforma</h3>
+              </div>
+
+              <div className="w-full relative pt-[56.25%] rounded-xl overflow-hidden shadow-lg">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${featuredVideoId}?autoplay=0&mute=0&controls=1&loop=1&playlist=${featuredVideoId}&rel=0&modestbranding=1&showinfo=0&cc_load_policy=0&iv_load_policy=3&playsinline=1`}
+                  title="Apresentação Minsa Preparatório"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -387,7 +396,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             <div className="h-px flex-1 bg-slate-200 ml-8 hidden md:block opacity-50"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {CATEGORIES.map((cat) => {
               const isBlocked = blockedCategories.includes(cat.id);
               return (
@@ -395,74 +404,74 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                   key={cat.id}
                   onClick={() => !isBlocked && onSelectCategory(cat)}
                   disabled={isBlocked}
-                  className={`group relative bg-white rounded-[2.5rem] p-1 text-left shadow-lg transition-all duration-500 overflow-hidden ${isBlocked
-                    ? 'opacity-70 cursor-not-allowed'
-                    : 'hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2'
+                  className={`group relative h-full flex flex-col items-start p-8 rounded-[2rem] text-left transition-all duration-300 ${isBlocked
+                    ? 'bg-slate-50/80 border border-slate-100 cursor-not-allowed opacity-70'
+                    : 'bg-white hover:bg-slate-50/50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.06)] hover:-translate-y-1 border border-slate-100'
                     }`}
                 >
-                  {/* Blocked Overlay */}
-                  {isBlocked && (
-                    <div className="absolute inset-0 z-20 bg-slate-900/10 backdrop-blur-[1px] rounded-[2.5rem] flex items-end justify-center pb-24">
-                      <div className="bg-red-500 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        Indisponível no momento
+                  {/* Status Indicator */}
+                  <div className="absolute top-8 right-8">
+                    {isBlocked ? (
+                      <div className="flex items-center justify-center w-10 h-10 bg-slate-100 rounded-full text-slate-400">
+                        <Icon name="lock" size="sm" />
                       </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-300 rounded-full group-hover:bg-brand-600 group-hover:text-white transition-all duration-300 group-hover:rotate-[-45deg]">
+                        <Icon name="arrow-right" size="sm" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Icon Container */}
+                  <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center text-3xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-md ${isBlocked ? 'bg-slate-200 text-slate-400 grayscale' : `${cat.color} text-white shadow-brand-500/10`
+                    }`}>
+                    {cat.icon}
+                  </div>
+
+                  {/* Content */}
+                  <div className="w-full">
+                    <h3 className={`text-xl font-display font-bold mb-3 tracking-tight ${isBlocked ? 'text-slate-500' : 'text-slate-900 group-hover:text-brand-700 transition-colors'}`}>
+                      {cat.title}
+                    </h3>
+                    <p className={`text-sm font-medium leading-relaxed ${isBlocked ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Acesse materiais exclusivos, simulados e conteúdos preparados para a sua aprovação.
+                    </p>
+                  </div>
+
+                  {/* Progress / Footer (Minimalist) */}
+                  {!isBlocked && (
+                    <div className="w-full mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-400 group-hover:text-brand-600 transition-colors">
+                      <span>Ver Conteúdo</span>
+                      <span className="opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300">➜</span>
                     </div>
                   )}
 
-                  {/* Border Gradient Container */}
-                  <div className={`absolute inset-0 rounded-[2.5rem] ${isBlocked ? 'bg-slate-200' : 'bg-gradient-to-br from-slate-100 to-white'}`}></div>
-
-                  {/* Card Content */}
-                  <div className={`relative h-full bg-white rounded-[2.3rem] p-8 overflow-hidden ${isBlocked ? 'grayscale' : ''}`}>
-                    {/* Hover Gradient Blob */}
-                    <div className={`absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br ${cat.color} opacity-0 ${!isBlocked && 'group-hover:opacity-1'} rounded-full blur-3xl transition-opacity duration-500`}></div>
-
-                    <div className="flex justify-between items-start mb-10">
-                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-xl ${cat.color} text-white ${!isBlocked && 'group-hover:scale-110 group-hover:rotate-3'} transition-transform duration-300 ring-4 ring-white`}>
-                        {cat.icon}
-                      </div>
-                      <div className={`rounded-full p-2 ${isBlocked ? 'bg-red-50' : 'bg-slate-50 group-hover:bg-brand-50'} transition-colors`}>
-                        {isBlocked ? (
-                          <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-6 h-6 text-slate-300 group-hover:text-brand-500 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                        )}
-                      </div>
+                  {/* Blocked message */}
+                  {/* Blocked message */}
+                  {isBlocked && (
+                    <div className="w-full mt-6 flex items-center gap-2 text-xs font-bold text-red-500/70 uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                      Indisponível
                     </div>
-
-                    <h3 className={`text-2xl font-bold font-display mb-3 transition-colors ${isBlocked ? 'text-slate-400' : 'text-slate-900 group-hover:text-brand-700'}`}>{cat.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed mb-6 h-10 line-clamp-2">{cat.description}</p>
-
-                    <div className="flex flex-wrap gap-2 mt-auto">
-                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>📚 Material</span>
-                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>🧪 Quiz</span>
-                      <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${isBlocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600'}`}>🎮 Jogo MedSim</span>
-                    </div>
-                  </div>
+                  )}
                 </button>
-              )
+              );
             })}
           </div>
         </div>
-
       </main>
 
       {/* Simple Footer */}
       <footer className="mt-20 border-t border-slate-200 py-12 text-center">
-        <p className="text-slate-400 text-sm">© 2026 Angola Saúde Prep. Todos os direitos reservados.</p>
+        <p className="text-slate-400 text-sm">© 2026 Minsa Preparatório. Todos os direitos reservados.</p>
         <div className="flex justify-center gap-4 mt-4">
           <span className="text-slate-300">•</span>
           <button onClick={onEnterTerms} className="text-sm text-slate-500 hover:text-brand-600">Termos</button>
           <span className="text-slate-300">•</span>
           <button onClick={onEnterTerms} className="text-sm text-slate-500 hover:text-brand-600">Privacidade</button>
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 };
 

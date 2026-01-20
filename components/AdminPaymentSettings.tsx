@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authService } from '../services/auth';
 
 interface PaymentMethod {
     id: string;
@@ -60,6 +61,12 @@ export const AdminPaymentSettings: React.FC = () => {
     const [startLoadingMethods, setStartLoadingMethods] = useState(true);
     const [approvingId, setApprovingId] = useState<string | null>(null);
     const [selectedPlanToApprove, setSelectedPlanToApprove] = useState<string>('pro');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+    const filteredProofs = proofs.filter(proof => {
+        if (filterStatus === 'all') return true;
+        return proof.status === filterStatus;
+    });
 
     // Fetch data on mount
     useEffect(() => {
@@ -96,7 +103,9 @@ export const AdminPaymentSettings: React.FC = () => {
     const fetchProofs = async () => {
         setLoadingProofs(true);
         try {
-            const response = await fetch('http://localhost:3001/payments/proofs');
+            const response = await fetch('http://localhost:3001/payments/proofs', {
+                headers: authService.getAuthHeaders()
+            });
             if (response.ok) {
                 const data = await response.json();
                 setProofs(data);
@@ -114,7 +123,10 @@ export const AdminPaymentSettings: React.FC = () => {
     const saveMethodsToBackend = async (data: PaymentMethod[]) => {
         const response = await fetch('http://localhost:3001/payment-methods', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...authService.getAuthHeaders()
+            },
             body: JSON.stringify(data)
         });
         if (!response.ok) {
@@ -166,7 +178,10 @@ export const AdminPaymentSettings: React.FC = () => {
         try {
             const response = await fetch(`http://localhost:3001/payments/proof/${id}/approve`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({ plan })
             });
             if (response.ok) {
@@ -190,7 +205,8 @@ export const AdminPaymentSettings: React.FC = () => {
 
         try {
             const response = await fetch(`http://localhost:3001/payments/proof/${id}/reject`, {
-                method: 'PUT'
+                method: 'PUT',
+                headers: authService.getAuthHeaders()
             });
             if (response.ok) {
                 setProofs(proofs.map(p =>
@@ -349,8 +365,51 @@ export const AdminPaymentSettings: React.FC = () => {
                         </span>
                     )}
                 </h3>
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                    <table className="w-full text-left text-sm">
+
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                    <button
+                        onClick={() => setFilterStatus('all')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterStatus === 'all'
+                            ? 'bg-slate-800 text-white shadow-md scale-105'
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                    >
+                        Todos
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('pending')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterStatus === 'pending'
+                            ? 'bg-amber-500 text-white shadow-md scale-105'
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                    >
+                        <span className={`w-2 h-2 rounded-full ${filterStatus === 'pending' ? 'bg-white' : 'bg-amber-500'}`}></span>
+                        Pendentes
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('approved')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterStatus === 'approved'
+                            ? 'bg-emerald-500 text-white shadow-md scale-105'
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                    >
+                        <span className={`w-2 h-2 rounded-full ${filterStatus === 'approved' ? 'bg-white' : 'bg-emerald-500'}`}></span>
+                        Aprovados
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('rejected')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterStatus === 'rejected'
+                            ? 'bg-red-500 text-white shadow-md scale-105'
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                    >
+                        <span className={`w-2 h-2 rounded-full ${filterStatus === 'rejected' ? 'bg-white' : 'bg-red-500'}`}></span>
+                        Rejeitados
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm overflow-x-auto">
+                    <table className="w-full text-left text-sm min-w-[800px]">
                         <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase text-xs tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">Usuário / Email</th>
@@ -362,7 +421,7 @@ export const AdminPaymentSettings: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {proofs.map(proof => (
+                            {filteredProofs.map(proof => (
                                 <tr key={proof.id} className={`hover:bg-slate-50 transition-colors ${proof.status === 'pending' ? 'bg-amber-50/30' : ''}`}>
                                     <td className="px-6 py-4 font-medium text-slate-900">{proof.user_email}</td>
                                     <td className="px-6 py-4">
@@ -388,62 +447,57 @@ export const AdminPaymentSettings: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        {proof.status === 'pending' && (
-                                            <div className="flex items-center justify-end gap-2">
-                                                {approvingId === proof.id ? (
-                                                    <div className="flex items-center gap-2 animate-in fade-in">
-                                                        <select
-                                                            value={selectedPlanToApprove}
-                                                            onChange={(e) => setSelectedPlanToApprove(e.target.value)}
-                                                            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                                                        >
-                                                            <option value="lite">Lite</option>
-                                                            <option value="pro">Pro</option>
-                                                            <option value="premier">Premier</option>
-                                                        </select>
-                                                        <button
-                                                            onClick={() => handleApproveProof(proof.id, proof.user_email, selectedPlanToApprove)}
-                                                            className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors"
-                                                        >
-                                                            Confirmar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setApprovingId(null)}
-                                                            className="text-slate-400 hover:text-slate-600 px-2"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            onClick={() => {
-                                                                setApprovingId(proof.id);
-                                                                setSelectedPlanToApprove(proof.plan_type || 'pro');
-                                                            }}
-                                                            className="text-emerald-600 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
-                                                        >
-                                                            ✓ Ativar Cliente
-                                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            {approvingId === proof.id ? (
+                                                <div className="flex items-center gap-2 animate-in fade-in">
+                                                    <select
+                                                        value={selectedPlanToApprove}
+                                                        onChange={(e) => setSelectedPlanToApprove(e.target.value)}
+                                                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                                                    >
+                                                        <option value="lite">Lite</option>
+                                                        <option value="pro">Pro</option>
+                                                        <option value="premier">Premier</option>
+                                                    </select>
+                                                    <button
+                                                        onClick={() => handleApproveProof(proof.id, proof.user_email, selectedPlanToApprove)}
+                                                        className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors"
+                                                    >
+                                                        Confirmar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setApprovingId(null)}
+                                                        className="text-slate-400 hover:text-slate-600 px-2"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            setApprovingId(proof.id);
+                                                            setSelectedPlanToApprove(proof.plan_type || 'pro');
+                                                        }}
+                                                        className={`font-bold text-xs px-3 py-1.5 rounded-lg transition-colors ${proof.status === 'approved'
+                                                            ? 'text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200'
+                                                            : 'text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100'
+                                                            }`}
+                                                    >
+                                                        {proof.status === 'approved' ? 'Alterar Plano' : '✓ Ativar Cliente'}
+                                                    </button>
+
+                                                    {proof.status !== 'rejected' && (
                                                         <button
                                                             onClick={() => handleRejectProof(proof.id)}
                                                             className="text-red-600 hover:text-red-800 font-bold text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
                                                         >
                                                             ✕ Rejeitar
                                                         </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
-                                        {proof.status === 'approved' && (
-                                            <span className="text-emerald-600 text-xs font-medium flex items-center justify-end gap-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                                Cliente Ativo
-                                            </span>
-                                        )}
-                                        {proof.status === 'rejected' && (
-                                            <span className="text-red-500 text-xs font-medium">Rejeitado</span>
-                                        )}
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -455,9 +509,9 @@ export const AdminPaymentSettings: React.FC = () => {
                             Carregando comprovativos...
                         </div>
                     )}
-                    {!loadingProofs && proofs.length === 0 && (
+                    {!loadingProofs && filteredProofs.length === 0 && (
                         <div className="p-8 text-center text-slate-500">
-                            Nenhum comprovativo recebido ainda.
+                            Nenhum comprovativo encontrado com este filtro.
                         </div>
                     )}
                 </div>

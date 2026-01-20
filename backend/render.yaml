@@ -1,23 +1,120 @@
+# ================================================
+# RENDER.COM - Configuração de Deploy PRODUÇÃO
+# Angola Saúde 2026 - Backend API
+# ================================================
+#
+# Este arquivo configura automaticamente o deploy no Render.com
+# Para usar: Conecte seu repositório GitHub ao Render
+#
+# SEGURANÇA:
+# - Rate limiting configurado para reverse proxies
+# - CORS restritivo em produção
+# - Headers de segurança automáticos
+#
+# ================================================
+
 services:
   - type: web
     name: angola-saude-backend
-    env: node
-    plan: free
-    buildCommand: npm install
+    runtime: node
+    plan: free  # Mudar para 'starter' ou superior em produção real
+    region: frankfurt  # Escolher região mais próxima dos usuários (fra para Europa/África)
+    
+    # Root Directory (se backend está em subpasta)
+    rootDir: backend
+    
+    # Comandos de Build
+    buildCommand: npm ci --omit=dev
     startCommand: npm start
+    
+    # Health Check - endpoint que retorna status do servidor
     healthCheckPath: /
+    
+    # Número de instâncias (ajustar conforme necessidade)
+    numInstances: 1
+    
+    # Auto Deploy quando há push na branch principal
+    autoDeploy: true
+    
+    # ================================================
+    # VARIÁVEIS DE AMBIENTE - PRODUÇÃO
+    # ================================================
     envVars:
+      # --- Ambiente ---
       - key: NODE_ENV
         value: production
+      
       - key: PORT
-        value: 3001
+        value: 10000  # Render usa porta 10000 por padrão
+      
+      # --- Supabase (OBRIGATÓRIO) ---
+      # Configurar manualmente no dashboard do Render
       - key: SUPABASE_URL
         sync: false
+      
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
+        sync: false  # CRÍTICO: Configurar manualmente no dashboard
+      
+      # --- Inteligência Artificial ---
       - key: OPENROUTER_API_KEY
-        sync: false
+        sync: false  # Configurar manualmente no dashboard
+      
       - key: AI_MODEL
-        value: mistralai/devstral-2512:free
+        value: google/gemini-2.0-flash-exp:free
+      
+      # --- Text-to-Speech ---
       - key: VOICERSS_API_KEY
+        sync: false  # Configurar manualmente no dashboard
+      
+      # --- Administração ---
+      - key: ADMIN_EMAILS
+        sync: false  # Lista de emails admin, separados por vírgula
+      
+      # --- CORS / Segurança ---
+      # URL do frontend no Vercel (configurar manualmente)
+      - key: FRONTEND_URL
         sync: false
+      
+      # URLs permitidas para CORS (separadas por vírgula)
+      - key: ALLOWED_ORIGINS
+        sync: false
+      
+      # --- Rate Limiting (opcional - valores padrão já definidos no código) ---
+      # Descomente para customizar
+      # - key: RATE_LIMIT_WINDOW_MS
+      #   value: 900000
+      # - key: RATE_LIMIT_MAX_REQUESTS
+      #   value: 100
+
+# ================================================
+# NOTAS IMPORTANTES PARA DEPLOY:
+# ================================================
+#
+# 1. ANTES DO DEPLOY:
+#    - Regenerar TODAS as chaves de API (Supabase, OpenRouter, VoiceRSS)
+#    - Configurar variáveis de ambiente no Render Dashboard
+#    - Verificar que FRONTEND_URL aponta para o domínio do Vercel
+#
+# 2. VARIÁVEIS OBRIGATÓRIAS (configurar no Dashboard):
+#    - SUPABASE_URL
+#    - SUPABASE_SERVICE_ROLE_KEY
+#    - FRONTEND_URL
+#    - ALLOWED_ORIGINS
+#
+# 3. VARIÁVEIS OPCIONAIS:
+#    - OPENROUTER_API_KEY (para funcionalidades de IA)
+#    - VOICERSS_API_KEY (para text-to-speech)
+#    - ADMIN_EMAILS (para acesso admin)
+#
+# 4. APÓS O DEPLOY:
+#    - Testar health check: GET /
+#    - Testar rate limiting: fazer 100+ requests
+#    - Testar CORS: request de origem não permitida
+#    - Verificar logs no Dashboard
+#
+# 5. ESCALABILIDADE:
+#    - Aumentar numInstances para mais capacidade
+#    - Mudar plan para 'starter' ou 'standard'
+#    - Considerar Redis para rate limiting distribuído
+#
+# ================================================

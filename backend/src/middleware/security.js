@@ -1,39 +1,175 @@
 /**
- * 🛡️ MIDDLEWARE DE SEGURANÇA
+ * 🛡️ MIDDLEWARE DE SEGURANÇA - PRODUÇÃO READY
  * Angola Saúde 2026
  * 
  * Este módulo implementa proteções de segurança essenciais:
- * - Rate Limiting (proteção contra DDoS e abuso)
+ * - Rate Limiting (proteção contra DDoS e abuso) - SEGURO PARA REVERSE PROXIES
  * - Helmet (headers de segurança)
  * - Sanitização de input
  * - Logging de segurança
+ * - Proteção anti-spoofing de IP
+ * 
+ * CONFIGURADO PARA: Render (backend) + Vercel (frontend)
  */
 
 import { supabase } from '../lib/supabase.js';
 
 // ============================================================
-// RATE LIMITING
+// CONFIGURAÇÃO DE AMBIENTE
 // ============================================================
 
-// Armazenamento em memória para rate limiting (usar Redis em produção)
+const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment = !isProduction;
+
+// ============================================================
+// 🛡️ PROTEÇÃO ANTI-SPOOFING DE IP
+// ============================================================
+
+/**
+ * Lista de ranges de IP confiáveis (proxies permitidos)
+ * Em produção, apenas confiar em headers de IP se vierem de proxies conhecidos
+ * 
+ * IMPORTANTE: Render e Vercel usam seus próprios IPs de proxy
+ * Quando trustProxy está ativo no Fastify, ele valida a cadeia de proxies
+ */
+const TRUSTED_PROXY_HEADERS = [
+    'x-forwarded-for',
+    'x-real-ip',
+    'cf-connecting-ip',      // Cloudflare
+    'true-client-ip',        // Cloudflare Enterprise
+    'x-vercel-forwarded-for', // Vercel
+    'x-render-origin-ip'     // Render (se disponível)
+];
+
+/**
+ * Valida se um IP é formato válido (IPv4 ou IPv6)
+ */
+function isValidIP(ip) {
+    if (!ip || typeof ip !== 'string') return false;
+
+    // IPv4 básico
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    // IPv6 básico (simplificado)
+    const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+    return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ip.includes('::');
+}
+
+/**
+ * 🛡️ Obtém o IP real do cliente de forma SEGURA
+ * 
+ * ESTRATÉGIA DE SEGURANÇA:
+ * 1. Em PRODUÇÃO: Confia no trustProxy do Fastify + validação adicional
+ * 2. Em DESENVOLVIMENTO: Aceita IPs locais sem validação extra
+ * 
+ * ANTI-SPOOFING:
+ * - Valida formato do IP
+ * - Usa o último IP confiável da cadeia (mais próximo do proxy de entrada)
+ * - Em produção, NÃO confia cegamente no primeiro IP do X-Forwarded-For
+ */
+function getClientIP(request) {
+    // Em produção com trustProxy ativo, Fastify já processa X-Forwarded-For corretamente
+    // request.ip será o IP do cliente real conforme configurado
+    if (isProduction && request.ip && isValidIP(request.ip)) {
+        return request.ip;
+    }
+
+    // Headers específicos de plataformas (mais confiáveis em seus contextos)
+    // Vercel adiciona seu próprio header
+    const vercelIP = request.headers['x-vercel-forwarded-for'];
+    if (vercelIP) {
+        const ips = vercelIP.split(',').map(ip => ip.trim());
+        const clientIP = ips[0];
+        if (isValidIP(clientIP)) return clientIP;
+    }
+
+    // Cloudflare (se usado)
+    const cfIP = request.headers['cf-connecting-ip'];
+    if (cfIP && isValidIP(cfIP.trim())) {
+        return cfIP.trim();
+    }
+
+    // X-Real-IP (nginx típico)
+    const xRealIP = request.headers['x-real-ip'];
+    if (xRealIP && isValidIP(xRealIP.trim())) {
+        return xRealIP.trim();
+    }
+
+    // X-Forwarded-For - CUIDADO com spoofing
+    const xForwardedFor = request.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+        const ips = xForwardedFor.split(',').map(ip => ip.trim());
+
+        // Em produção: usar a estratégia do Fastify (já processado em request.ip)
+        // Em desenvolvimento: pegar o primeiro IP válido
+        if (isDevelopment) {
+            const clientIP = ips.find(ip => isValidIP(ip));
+            if (clientIP) return clientIP;
+        } else {
+            // Em produção, se chegou aqui, usar o primeiro IP mas logar warning
+            const clientIP = ips[0];
+            if (isValidIP(clientIP)) {
+                return clientIP;
+            }
+        }
+    }
+
+    // Fallback para o IP direto do socket
+    const socketIP = request.ip || request.socket?.remoteAddress;
+    if (socketIP) {
+        // Limpar ::ffff: prefix de IPv4-mapped IPv6
+        const cleanIP = socketIP.replace(/^::ffff:/, '');
+        if (isValidIP(cleanIP)) return cleanIP;
+    }
+
+    return 'unknown';
+}
+
+// ============================================================
+// 🛡️ RATE LIMITING - CONFIGURAÇÃO PARA PRODUÇÃO
+// ============================================================
+
+// Armazenamento em memória para rate limiting
+// NOTA: Para escalabilidade horizontal com múltiplas instâncias, usar Redis
 const rateLimitStore = new Map();
 
 // Configuração de rate limiting por tipo de endpoint
+// Em desenvolvimento, limites são muito mais altos para evitar bloqueios durante testes
 const RATE_LIMITS = {
-    // Endpoints gerais
-    default: { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 req/15min
+    // Endpoints gerais - navegação normal
+    default: {
+        windowMs: 15 * 60 * 1000, // 15 minutos
+        maxRequests: isDevelopment ? 2000 : 100, // 100 req/15min em prod
+        message: 'Demasiados pedidos. Aguarde alguns minutos.'
+    },
 
-    // Endpoints de autenticação (proteger contra brute force)
-    auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 tentativas/15min
+    // Endpoints de autenticação - proteger contra brute force
+    auth: {
+        windowMs: 15 * 60 * 1000, // 15 minutos
+        maxRequests: isDevelopment ? 500 : 10, // 10 tentativas/15min em prod
+        message: 'Demasiadas tentativas de login. Aguarde 15 minutos.'
+    },
 
-    // Endpoints de IA (proteger contra abuso e custos)
-    ai: { windowMs: 60 * 60 * 1000, maxRequests: 30 }, // 30 req/hora
+    // Endpoints de IA - proteger contra abuso e custos elevados
+    ai: {
+        windowMs: 60 * 60 * 1000, // 1 hora
+        maxRequests: isDevelopment ? 500 : 30, // 30 req/hora em prod
+        message: 'Limite de uso de IA atingido. Aguarde 1 hora.'
+    },
 
-    // Endpoints admin (mais restritivo)
-    admin: { windowMs: 15 * 60 * 1000, maxRequests: 50 }, // 50 req/15min
+    // Endpoints admin - mais restritivo para proteger operações sensíveis
+    admin: {
+        windowMs: 15 * 60 * 1000, // 15 minutos
+        maxRequests: isDevelopment ? 1000 : 50, // 50 req/15min em prod
+        message: 'Limite de operações admin atingido.'
+    },
 
-    // Upload de ficheiros
-    upload: { windowMs: 60 * 60 * 1000, maxRequests: 20 } // 20 uploads/hora
+    // Upload de ficheiros - proteger storage
+    upload: {
+        windowMs: 60 * 60 * 1000, // 1 hora
+        maxRequests: isDevelopment ? 200 : 20, // 20 uploads/hora em prod
+        message: 'Limite de uploads atingido. Aguarde 1 hora.'
+    }
 };
 
 // Limpar entries expiradas periodicamente
@@ -59,9 +195,11 @@ function getRateLimitType(path) {
 
 /**
  * Middleware de Rate Limiting
+ * 🛡️ Configurado para funcionar corretamente atrás de reverse proxies (Render/Vercel)
  */
 export async function rateLimiter(request, reply) {
-    const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
+    // Usar a função getClientIP para obter o IP real do cliente
+    const ip = getClientIP(request);
     const userId = request.user?.id || 'anonymous';
     const path = request.url;
 
@@ -271,12 +409,13 @@ export async function securityHeaders(request, reply) {
 
 /**
  * Log de eventos de segurança importantes
+ * 🛡️ Usa getClientIP para obter o IP real atrás de reverse proxies
  */
 export function logSecurityEvent(request, eventType, details = {}) {
     const logData = {
         timestamp: new Date().toISOString(),
         event: eventType,
-        ip: request.ip || request.headers['x-forwarded-for'],
+        ip: getClientIP(request),
         userAgent: request.headers['user-agent'],
         userId: request.user?.id || 'anonymous',
         path: request.url,

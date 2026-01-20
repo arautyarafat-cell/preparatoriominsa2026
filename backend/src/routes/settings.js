@@ -48,28 +48,34 @@ export default async function settingsRoutes(fastify) {
      */
     fastify.get('/settings', async (request, reply) => {
         try {
-            // Tentar buscar do Supabase primeiro
+            // Sempre carregar configs locais como base
+            const localSettings = loadLocalSettings();
+
+            // Tentar buscar do Supabase
             const { data, error } = await supabase
                 .from('app_settings')
                 .select('*');
 
             if (error) {
-                // Se erro, usar arquivo local como fallback
+                // Se erro no Supabase, usar apenas arquivo local
                 console.warn('Supabase error, using local file:', error.message);
-                return loadLocalSettings();
+                return localSettings;
             }
 
             // Converter array [{key: 'k', value: 'v'}] para objeto {k: v}
-            const settings = { whatsapp: '', email: '' };
+            const supabaseSettings = {};
             if (data && data.length > 0) {
                 data.forEach(item => {
                     if (item.key && item.value !== undefined) {
-                        settings[item.key] = item.value;
+                        supabaseSettings[item.key] = item.value;
                     }
                 });
             }
 
-            return settings;
+            // Merge: local settings como base, Supabase sobrescreve
+            const mergedSettings = { ...localSettings, ...supabaseSettings };
+
+            return mergedSettings;
         } catch (e) {
             console.error('Error in GET /settings:', e);
             // Fallback para arquivo local

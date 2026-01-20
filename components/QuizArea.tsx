@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Category, GeneratedQuestion } from '../types';
 import { generateGeneralQuiz } from '../services/geminiService';
+import { authService } from '../services/auth';
 
 interface QuizAreaProps {
     category: Category;
@@ -22,6 +23,34 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
     const [selectedTopic, setSelectedTopic] = useState<string>('');
     const [loadingTopics, setLoadingTopics] = useState(true);
     const [showTopicSelection, setShowTopicSelection] = useState(true);
+
+    // Submit quiz results when completed
+    useEffect(() => {
+        if (completed && questions.length > 0) {
+            const submitResults = async () => {
+                try {
+                    const headers = {
+                        ...authService.getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    };
+                    await fetch('http://localhost:3001/quiz/result', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            category_id: category.id,
+                            topic: selectedTopic || category.title,
+                            score: score,
+                            total_questions: questions.length
+                        })
+                    });
+                    console.log('[QuizArea] Results submitted successfully');
+                } catch (error) {
+                    console.error('[QuizArea] Failed to submit results:', error);
+                }
+            };
+            submitResults();
+        }
+    }, [completed]);
 
     // Fetch available topics for the category
     useEffect(() => {

@@ -30,11 +30,38 @@ import {
 } from './middleware/security.js';
 
 export async function buildApp() {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     const fastify = Fastify({
-        logger: true,
+        logger: {
+            level: isProduction ? 'info' : 'debug',
+            // Em produção, log estruturado para melhor análise
+            ...(isProduction && {
+                formatters: {
+                    level: (label) => ({ level: label })
+                }
+            })
+        },
         // Aumentar segurança do parser
         bodyLimit: 10485760, // 10MB max body
-        caseSensitive: true
+        caseSensitive: true,
+        // 🛡️ CONFIGURAÇÃO CRÍTICA PARA REVERSE PROXIES (Render/Vercel)
+        // 
+        // trustProxy: true permite que Fastify confie nos headers X-Forwarded-*
+        // Isso é NECESSÁRIO quando a aplicação está atrás de:
+        // - Render.com (sempre atrás de proxy)
+        // - Vercel (sempre atrás de proxy)
+        // - Load balancers
+        // - Nginx/Apache como reverse proxy
+        //
+        // Com trustProxy ativo:
+        // - request.ip retorna o IP real do cliente (do X-Forwarded-For)
+        // - request.protocol retorna 'https' corretamente
+        // - request.hostname retorna o host correto
+        //
+        // SEGURANÇA: O middleware de rate limiting faz validação adicional
+        // dos headers para prevenir spoofing de IP
+        trustProxy: isProduction
     });
 
     // ============================================================
@@ -42,7 +69,6 @@ export async function buildApp() {
     // ============================================================
 
     const allowedOrigins = getAllowedOrigins();
-    const isProduction = process.env.NODE_ENV === 'production';
 
     await fastify.register(cors, {
         // Em produção: apenas origens permitidas

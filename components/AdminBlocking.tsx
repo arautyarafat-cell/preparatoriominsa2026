@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CATEGORIES } from '../constants';
+import { authService } from '../services/auth';
 
 interface BlockedUser {
     email: string;
@@ -25,15 +26,23 @@ export const AdminBlocking: React.FC = () => {
         setLoading(true);
         try {
             // Fetch blocking data
-            const blockRes = await fetch('http://localhost:3001/blocking');
-            const blockData = await blockRes.json();
-            setBlockedCategories(blockData.blockedCategories || []);
-            setBlockedUsers(blockData.blockedUsers || []);
+            const blockRes = await fetch('http://localhost:3001/blocking', {
+                headers: authService.getAuthHeaders()
+            });
+            if (blockRes.ok) {
+                const blockData = await blockRes.json();
+                setBlockedCategories(blockData.blockedCategories || []);
+                setBlockedUsers(blockData.blockedUsers || []);
+            }
 
             // Fetch users
-            const usersRes = await fetch('http://localhost:3001/users');
-            const usersData = await usersRes.json();
-            setUsers(usersData || []);
+            const usersRes = await fetch('http://localhost:3001/users', {
+                headers: authService.getAuthHeaders()
+            });
+            if (usersRes.ok) {
+                const usersData = await usersRes.json();
+                setUsers(usersData.users || []);
+            }
 
         } catch (e) {
             console.error('Failed to fetch data:', e);
@@ -46,7 +55,10 @@ export const AdminBlocking: React.FC = () => {
         try {
             const res = await fetch('http://localhost:3001/blocking/category', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({ categoryId, categoryName })
             });
 
@@ -63,7 +75,8 @@ export const AdminBlocking: React.FC = () => {
     const handleUnblockCategory = async (categoryId: string) => {
         try {
             const res = await fetch(`http://localhost:3001/blocking/category/${categoryId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
             });
 
             if (res.ok) {
@@ -83,7 +96,10 @@ export const AdminBlocking: React.FC = () => {
         try {
             const res = await fetch('http://localhost:3001/blocking/user', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     email: selectedUserEmail,
                     reason: blockReason || 'Bloqueado pelo administrador'
@@ -112,7 +128,8 @@ export const AdminBlocking: React.FC = () => {
     const handleUnblockUser = async (email: string) => {
         try {
             const res = await fetch(`http://localhost:3001/blocking/user/${encodeURIComponent(email)}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
             });
 
             if (res.ok) {

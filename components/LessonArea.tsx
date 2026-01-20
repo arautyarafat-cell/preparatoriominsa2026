@@ -10,6 +10,7 @@ import {
     LESSON_LEVELS
 } from '../types/lesson';
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 
 
 // ==================================================
@@ -400,7 +401,10 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                         {/* Slide Content */}
                         <div className="flex-1 p-8 overflow-y-auto">
                             <div className="prose prose-lg prose-slate max-w-none mb-8">
-                                <ReactMarkdown>{currentSlide.conteudoPrincipal}</ReactMarkdown>
+                                <div
+                                    className="rich-content"
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.conteudoPrincipal) }}
+                                />
                             </div>
 
                             {/* Pontos-Chave */}

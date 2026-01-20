@@ -195,4 +195,118 @@ export default async function quizRoutes(fastify, options) {
             return reply.code(500).send({ error: `Failed to generate quiz: ${error.message}` });
         }
     });
+
+    /**
+     * POST /quiz/result
+     * Submete o resultado de um quiz concluído
+     * Guarda o score na tabela user_quiz_history
+     */
+    fastify.post('/quiz/result', async (request, reply) => {
+        const { category_id, topic, score, total_questions } = request.body;
+
+        // Tentar autenticar
+        if (request.headers.authorization && request.headers['x-device-id']) {
+            try {
+                await authenticate(request, reply);
+                if (reply.sent) return;
+            } catch (authErr) {
+                console.warn("[Quiz Result] Auth attempt failed:", authErr);
+            }
+        }
+
+        const userId = request.user?.id;
+
+        if (!userId) {
+            return reply.code(401).send({ error: 'Autenticação necessária para guardar resultados' });
+        }
+
+        if (score === undefined || total_questions === undefined) {
+            return reply.code(400).send({ error: 'Score e total_questions são obrigatórios' });
+        }
+
+        try {
+            // Converter category_id se necessário
+            const realCategoryId = await getCategoryUUID(category_id);
+
+            // Inserir o resultado na tabela de histórico
+            const { error: insertError } = await supabase
+                .from('user_quiz_history')
+                .insert({
+                    user_id: userId,
+                    category_id: realCategoryId,
+                    topic: topic || 'Quiz',
+                    total_questions: total_questions,
+                    score: score,
+                    created_at: new Date().toISOString()
+                });
+
+            if (insertError) {
+                console.error('[Quiz Result] Failed to save:', insertError);
+                return reply.code(500).send({ error: 'Falha ao guardar resultado do quiz' });
+            }
+
+            console.log(`[Quiz Result] Saved: user=${userId}, score=${score}/${total_questions}`);
+            return { success: true, message: 'Resultado do quiz guardado com sucesso' };
+
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: `Falha ao guardar resultado: ${error.message}` });
+        }
+    });
+
+    /**
+     * POST /flashcards/result
+     * Submete o resultado de uma sessão de flashcards
+     */
+    fastify.post('/flashcards/result', async (request, reply) => {
+        const { category_id, cards_reviewed, mastered } = request.body;
+
+        // Tentar autenticar
+        if (request.headers.authorization && request.headers['x-device-id']) {
+            try {
+                await authenticate(request, reply);
+                if (reply.sent) return;
+            } catch (authErr) {
+                console.warn("[Flashcard Result] Auth attempt failed:", authErr);
+            }
+        }
+
+        const userId = request.user?.id;
+
+        if (!userId) {
+            return reply.code(401).send({ error: 'Autenticação necessária para guardar resultados' });
+        }
+
+        if (cards_reviewed === undefined) {
+            return reply.code(400).send({ error: 'cards_reviewed é obrigatório' });
+        }
+
+        try {
+            // Converter category_id se necessário
+            const realCategoryId = await getCategoryUUID(category_id);
+
+            // Inserir o resultado na tabela de histórico
+            const { error: insertError } = await supabase
+                .from('user_flashcard_history')
+                .insert({
+                    user_id: userId,
+                    category_id: realCategoryId,
+                    cards_reviewed: cards_reviewed,
+                    mastered: mastered || 0,
+                    created_at: new Date().toISOString()
+                });
+
+            if (insertError) {
+                console.error('[Flashcard Result] Failed to save:', insertError);
+                return reply.code(500).send({ error: 'Falha ao guardar resultado dos flashcards' });
+            }
+
+            console.log(`[Flashcard Result] Saved: user=${userId}, reviewed=${cards_reviewed}, mastered=${mastered}`);
+            return { success: true, message: 'Resultado dos flashcards guardado com sucesso' };
+
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: `Falha ao guardar resultado: ${error.message}` });
+        }
+    });
 }

@@ -39,15 +39,13 @@ const Profile: React.FC<ProfileProps> = ({ user, onBack, onLogout, onEnterPricin
 
     // Fetch user plan from backend
     useEffect(() => {
-        const fetchUserPlan = async () => {
+        const loadPlan = async () => {
             if (user?.email) {
                 setLoadingPlan(true);
                 try {
-                    const response = await fetch(`http://localhost:3001/user/plan/${encodeURIComponent(user.email)}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setUserPlanInfo(data);
-                    }
+                    // Use authService to fetch plan with correct headers
+                    const data = await authService.fetchUserPlan(user.email);
+                    setUserPlanInfo(data);
                 } catch (error) {
                     console.error('Error fetching user plan:', error);
                 } finally {
@@ -55,20 +53,41 @@ const Profile: React.FC<ProfileProps> = ({ user, onBack, onLogout, onEnterPricin
                 }
             }
         };
-        fetchUserPlan();
+        loadPlan();
     }, [user?.email]);
 
-    // Fetch user activity history
+    // Fetch user activity history from backend
     useEffect(() => {
-        setLoading(true);
-        // TODO: Replace with real API call to fetch user history
-        // For now using empty arrays since there's no backend for this yet
-        setTimeout(() => {
-            setQuizHistory([]);
-            setFlashcardHistory([]);
+        const fetchUserStats = async () => {
+            setLoading(true);
+            try {
+                const headers = authService.getAuthHeaders();
+                const res = await fetch('http://localhost:3001/users/me/stats', { headers });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setQuizHistory(data.quizHistory || []);
+                    setFlashcardHistory(data.flashcardHistory || []);
+                } else {
+                    console.warn('Failed to fetch user stats:', res.status);
+                    setQuizHistory([]);
+                    setFlashcardHistory([]);
+                }
+            } catch (error) {
+                console.error('Error fetching user stats:', error);
+                setQuizHistory([]);
+                setFlashcardHistory([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.email) {
+            fetchUserStats();
+        } else {
             setLoading(false);
-        }, 300);
-    }, []);
+        }
+    }, [user?.email]);
 
     // Plan display data based on actual plan
     const getPlanDetails = () => {

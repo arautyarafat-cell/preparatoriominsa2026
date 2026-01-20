@@ -9,6 +9,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { authService } from '../services/auth';
+import RichTextEditor from './RichTextEditor';
 
 // ==================================================
 // INTERFACES
@@ -186,7 +188,9 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const fetchLessons = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('http://localhost:3001/lessons');
+            const res = await fetch('http://localhost:3001/lessons', {
+                headers: authService.getAuthHeaders()
+            });
             const data = await res.json();
             if (data.data) {
                 setLessons(data.data);
@@ -202,7 +206,9 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const fetchAvailableMaterials = async () => {
         setLoadingMaterials(true);
         try {
-            const res = await fetch('http://localhost:3001/materials');
+            const res = await fetch('http://localhost:3001/materials', {
+                headers: authService.getAuthHeaders()
+            });
             const data = await res.json();
             if (data.data) {
                 setAvailableMaterials(data.data);
@@ -238,6 +244,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
 
             const res = await fetch('http://localhost:3001/materials', {
                 method: 'POST',
+                headers: authService.getAuthHeaders(), // For FormData, typically we don't set Content-Type as browser does it with boundary, but we need Auth
                 body: uploadFormData
             });
 
@@ -336,7 +343,10 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
 
             const res = await fetch(url, {
                 method: isEditing ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify(lessonData)
             });
 
@@ -419,7 +429,8 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
 
         try {
             const res = await fetch(`http://localhost:3001/lessons/${lessonId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
             });
 
             if (res.ok) {
@@ -531,7 +542,10 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
         try {
             const res = await fetch('http://localhost:3001/generate/tts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({ text: slide.audioScript })
             });
 
@@ -574,7 +588,10 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
         try {
             const res = await fetch('http://localhost:3001/generate/lesson-full', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     tema: aiTopic,
                     area: formData.area,
@@ -1522,11 +1539,10 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Conteudo Principal</label>
-                                <textarea
+                                <RichTextEditor
                                     value={slideFormData.conteudoPrincipal}
-                                    onChange={e => setSlideFormData(prev => ({ ...prev, conteudoPrincipal: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-xl h-24 resize-none"
-                                    placeholder="Texto principal do slide (suporta Markdown)"
+                                    onChange={(value) => setSlideFormData(prev => ({ ...prev, conteudoPrincipal: value }))}
+                                    placeholder="Texto principal do slide..."
                                 />
                             </div>
 
