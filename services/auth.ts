@@ -1,4 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
+import { API_URL } from '../config/api';
+
+// Re-exportar API_URL para compatibilidade com componentes existentes
+export { API_URL };
 
 /**
  * 🛡️ SERVIÇO DE AUTENTICAÇÃO (Frontend)
@@ -10,9 +14,6 @@ import { v4 as uuidv4 } from 'uuid';
  * - Gestão de sessão
  * - Device ID (para controlo de sessão única)
  */
-
-// URL da API - usa variável de ambiente ou fallback para localhost
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // ============================================================
 // GESTÃO DE DEVICE ID

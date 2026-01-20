@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Category } from '../types';
-import { authService } from '../services/auth';
+import { authService, API_URL } from '../services/auth';
 
 interface CategoryHubProps {
    category: Category;
@@ -48,7 +48,7 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
    useEffect(() => {
       const checkBlocked = async () => {
          try {
-            const res = await fetch('http://localhost:3001/blocking/categories');
+            const res = await fetch(`${API_URL}/blocking/categories`);
             const data = await res.json();
             const blocked = data.blockedCategories || [];
             setBlockedCategories(blocked);

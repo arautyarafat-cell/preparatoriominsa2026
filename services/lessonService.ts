@@ -29,15 +29,9 @@ import {
 // CONFIGURACAO
 // ==================================================
 
-const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        return `http://${hostname}:3001`;
-    }
-    return 'http://localhost:3001';
-};
+import { API_URL } from '../config/api';
 
-const BACKEND_URL = getBackendUrl();
+const BACKEND_URL = API_URL;
 
 const getHeaders = () => {
     const headers: Record<string, string> = {

@@ -1,13 +1,6 @@
+import { API_URL } from '../config/api';
 
-const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        return `http://${hostname}:3001`;
-    }
-    return 'http://localhost:3001';
-};
-
-const BACKEND_URL = getBackendUrl();
+const BACKEND_URL = API_URL;
 
 export interface AppSettings {
     whatsapp: string;

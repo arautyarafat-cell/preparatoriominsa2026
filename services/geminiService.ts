@@ -1,22 +1,8 @@
 import { GeneratedQuestion, Category, GameScenario, Flashcard, QuestionOption, MedSimCase } from "../types";
+import { API_URL } from "../config/api";
 
-// Use o hostname atual para suportar acesso via IP de rede local
-const getBackendUrl = () => {
-  // 1. Se houver uma variável de ambiente de produção, use-a
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
-  }
-
-  // 2. Fallback para desenvolvimento local (IP dinâmico ou localhost)
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // Se estiver rodando no localhost ou IP local, assume backend na porta 3001
-    return `http://${hostname}:3001`;
-  }
-  return 'http://localhost:3001';
-};
-
-const BACKEND_URL = getBackendUrl();
+// Usar API_URL centralizado do config/api.ts
+const BACKEND_URL = API_URL;
 
 const getHeaders = () => {
   const headers: Record<string, string> = {

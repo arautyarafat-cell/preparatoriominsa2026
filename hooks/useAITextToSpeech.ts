@@ -33,15 +33,9 @@ export interface AIAudioOptions {
 // CONFIGURACAO
 // ==================================================
 
-const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        return `http://${hostname}:3001`;
-    }
-    return 'http://localhost:3001';
-};
+import { API_URL } from '../config/api';
 
-const BACKEND_URL = getBackendUrl();
+const BACKEND_URL = API_URL;
 
 // Cache local para audios gerados
 const audioCache = new Map<string, string>();

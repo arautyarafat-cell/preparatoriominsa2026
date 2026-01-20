@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CATEGORIES, MOCK_STATS, MOCK_TOPICS } from '../constants';
 import { Category, Topic } from '../types';
 import { Icon } from './icons';
+import { API_URL } from '../config/api';
 
 
 
@@ -39,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
   useEffect(() => {
     const fetchBlocked = async () => {
       try {
-        const res = await fetch('http://localhost:3001/blocking/categories');
+        const res = await fetch(`${API_URL}/blocking/categories`);
         const data = await res.json();
         setBlockedCategories(data.blockedCategories || []);
       } catch (e) {
@@ -53,7 +54,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('http://localhost:3001/settings');
+        const res = await fetch(`${API_URL}/settings`);
         const data = await res.json();
         if (data.featured_video_url) {
           const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;

@@ -1,6 +1,4 @@
-import { authService, getDeviceId } from './auth';
-
-const API_URL = 'http://localhost:3001';
+import { authService, getDeviceId, API_URL } from './auth';
 
 interface Flashcard {
     id: string;
