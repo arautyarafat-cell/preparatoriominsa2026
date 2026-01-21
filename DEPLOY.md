@@ -234,7 +234,7 @@ curl -I https://frontend.vercel.app | grep -E "(X-Frame|X-Content|Strict-Transpo
 
 ---
 
-## � MONITORAMENTO (UptimeRobot / Keep-Alive)
+## 🔍 MONITORAMENTO (Cron-Job.org / Keep-Alive)
 
 ### Health Check Endpoints
 
@@ -273,23 +273,25 @@ O backend possui endpoints dedicados para monitoramento de disponibilidade:
 }
 ```
 
-### Configurar UptimeRobot (Evitar Sleep do Render)
+### Configurar Cron-Job.org (Evitar Sleep do Render)
 
 O plano gratuito do Render entra em sleep após 15 minutos de inatividade. Para evitar isso:
 
-1. Acesse [UptimeRobot](https://uptimerobot.com)
+1. Acesse [Cron-Job.org](https://cron-job.org)
 2. Crie uma conta gratuita
-3. Adicione um novo monitor:
-   - **Tipo:** HTTP(s)
+3. Clique em **Create cronjob**
+4. Configure:
+   - **Title:** Angola Saúde Keep-Alive
    - **URL:** `https://preparatoriominsa2026.onrender.com/health/ping`
-   - **Intervalo:** 5 minutos
-   - **Timeout:** 30 segundos
-4. Configure alertas por email (opcional)
+   - **Schedule:** Every 5 minutes (`*/5 * * * *`)
+   - **Request Method:** GET
+   - **Request Timeout:** 30 seconds
+5. Clique em **Create**
 
 ### URLs de Monitoramento:
 
 ```
-# Ping rápido (recomendado para UptimeRobot)
+# Ping rápido (recomendado)
 https://preparatoriominsa2026.onrender.com/health/ping
 
 # Health check completo
