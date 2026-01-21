@@ -300,46 +300,45 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
 
     const renderHeader = () => (
         <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 z-50 sticky top-0">
-            <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-                <div className="flex items-center gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-20 flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1">
                     <button
                         onClick={onBack}
-                        className="group w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200"
+                        className="group w-8 h-8 sm:w-10 sm:h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200 flex-shrink-0"
                         title="Voltar"
                     >
-                        <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                     </button>
 
-                    <div>
-                        <h1 className="text-xl font-display font-bold text-slate-900 truncate max-w-xs sm:max-w-md tracking-tight">
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-sm sm:text-xl font-display font-bold text-slate-900 truncate tracking-tight">
                             {lesson.titulo}
                         </h1>
-                        <div className="flex items-center gap-3 mt-0.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${LESSON_LEVELS[lesson.nivel].cor} text-white`}>
+                        <div className="flex items-center gap-2 sm:gap-3 mt-0.5 flex-wrap">
+                            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold uppercase ${LESSON_LEVELS[lesson.nivel].cor} text-white`}>
                                 {LESSON_LEVELS[lesson.nivel].titulo}
                             </span>
-                            <span className="text-xs text-slate-500">{category.title}</span>
-                            <span className="text-xs text-slate-400">|</span>
-                            <span className="text-xs text-slate-500">{formatTime(progress.tempoTotalSegundos)}</span>
+                            <span className="text-[10px] sm:text-xs text-slate-500 hidden sm:inline">{category.title}</span>
+                            <span className="text-[10px] sm:text-xs text-slate-500">{formatTime(progress.tempoTotalSegundos)}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
+                {/* Progress Bar - Mobile e Desktop */}
+                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                    <div className="w-16 sm:w-48 h-1.5 sm:h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all duration-500"
                             style={{ width: `${progressPercentage}%` }}
                         />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">{progressPercentage}%</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">{progressPercentage}%</span>
                 </div>
 
-                {/* Tab Navigation */}
-                <nav className="hidden lg:flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
+                {/* Tab Navigation - Desktop Only */}
+                <nav className="hidden lg:flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 ml-4">
                     {[
                         { id: 'slides' as LessonTab, label: 'Slides', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
                         { id: 'conversacional' as LessonTab, label: 'Aula', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
@@ -374,33 +373,33 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
         if (!currentSlide) return null;
 
         return (
-            <div className="h-full flex flex-col lg:flex-row gap-6 p-6">
+            <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-6 p-3 sm:p-6 pb-20 lg:pb-6">
                 {/* Slide Principal */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden flex-1 flex flex-col">
                         {/* Slide Header */}
-                        <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-6 flex-shrink-0">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-slate-400 text-sm font-medium">
+                        <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
+                            <div className="flex items-start sm:items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                    <span className="text-slate-400 text-xs sm:text-sm font-medium">
                                         Slide {currentSlideIndex + 1} de {lesson.slides.length}
                                     </span>
-                                    <h2 className="text-2xl font-display font-bold text-white mt-1">
+                                    <h2 className="text-lg sm:text-2xl font-display font-bold text-white mt-1 line-clamp-2">
                                         {currentSlide.titulo}
                                     </h2>
                                 </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${currentSlide.relevanciaProva === 'alta' ? 'bg-red-500/20 text-red-300' :
+                                <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase flex-shrink-0 ${currentSlide.relevanciaProva === 'alta' ? 'bg-red-500/20 text-red-300' :
                                     currentSlide.relevanciaProva === 'media' ? 'bg-yellow-500/20 text-yellow-300' :
                                         'bg-green-500/20 text-green-300'
                                     }`}>
-                                    Relevancia {currentSlide.relevanciaProva}
+                                    {currentSlide.relevanciaProva}
                                 </span>
                             </div>
                         </div>
 
                         {/* Slide Content */}
-                        <div className="flex-1 p-8 overflow-y-auto">
-                            <div className="prose prose-lg prose-slate max-w-none mb-8">
+                        <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
+                            <div className="prose prose-sm sm:prose-lg prose-slate max-w-none mb-6 sm:mb-8">
                                 <div
                                     className="rich-content"
                                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.conteudoPrincipal) }}
@@ -408,19 +407,19 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                             </div>
 
                             {/* Pontos-Chave */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                            <div className="grid grid-cols-1 gap-3 sm:gap-4 mt-4 sm:mt-6">
                                 {currentSlide.pontosChave.map((ponto, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-5 border border-slate-200/50"
+                                        className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/50"
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <span className="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                        <div className="flex items-start gap-2 sm:gap-3">
+                                            <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
                                                 {idx + 1}
                                             </span>
-                                            <div>
-                                                <h4 className="font-bold text-slate-900 text-sm">{ponto.titulo}</h4>
-                                                <p className="text-slate-600 text-sm mt-1">{ponto.descricao}</p>
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{ponto.titulo}</h4>
+                                                <p className="text-slate-600 text-xs sm:text-sm mt-1">{ponto.descricao}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -428,26 +427,29 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                             </div>
 
                             {/* Conceito Central */}
-                            <div className="mt-8 p-6 bg-brand-50 rounded-2xl border border-brand-100">
+                            <div className="mt-4 sm:mt-8 p-4 sm:p-6 bg-brand-50 rounded-xl sm:rounded-2xl border border-brand-100">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span className="text-sm font-bold text-brand-700 uppercase tracking-wide">Conceito Central</span>
+                                    <span className="text-xs sm:text-sm font-bold text-brand-700 uppercase tracking-wide">Conceito Central</span>
                                 </div>
-                                <p className="text-brand-900 font-medium">{currentSlide.conceito}</p>
+                                <p className="text-brand-900 font-medium text-sm sm:text-base">{currentSlide.conceito}</p>
                             </div>
                         </div>
 
                         {/* Slide Footer - Navigation Only (Audio Removed) */}
-                        <div className="border-t border-slate-200 px-8 py-4 bg-slate-50 flex items-center justify-end">
+                        <div className="border-t border-slate-200 px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 flex items-center justify-between sm:justify-end">
+                            <span className="text-xs text-slate-500 sm:hidden">
+                                {currentSlideIndex + 1}/{lesson.slides.length}
+                            </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={handlePrevSlide}
                                     disabled={currentSlideIndex === 0}
-                                    className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                                 >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </button>
@@ -455,9 +457,9 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                                 <button
                                     onClick={handleNextSlide}
                                     disabled={currentSlideIndex === lesson.slides.length - 1}
-                                    className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                    className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-slate-900 text-white text-sm sm:text-base font-bold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                                 >
-                                    Proximo
+                                    <span className="hidden sm:inline">Próximo</span>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
@@ -467,14 +469,14 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                     </div>
                 </div>
 
-                {/* Sidebar - Navegacao de Slides */}
-                <div className="lg:w-72 flex-shrink-0">
+                {/* Sidebar - Navegacao de Slides - Oculto em mobile */}
+                <div className="hidden lg:block lg:w-72 flex-shrink-0">
                     <div className="bg-white rounded-2xl border border-slate-200/60 shadow-lg p-4 h-full flex flex-col">
                         <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 flex-shrink-0">
                             <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                             </svg>
-                            Navegacao
+                            Navegação
                         </h3>
 
                         <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-1">
