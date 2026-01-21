@@ -123,11 +123,17 @@ No Render Dashboard > Environment, adicione:
 ### Passo 4: Verificar
 
 ```bash
-# Health check
-curl https://seu-backend.onrender.com/
+# Health check básico
+curl https://preparatoriominsa2026.onrender.com/
 
 # Deve retornar:
 # {"status":"ok","message":"Angola Health Prep Backend API","version":"1.0.0","environment":"production"}
+
+# Health check completo (com status do banco de dados)
+curl https://preparatoriominsa2026.onrender.com/health
+
+# Ping rápido
+curl https://preparatoriominsa2026.onrender.com/health/ping
 ```
 
 ---
@@ -228,7 +234,71 @@ curl -I https://frontend.vercel.app | grep -E "(X-Frame|X-Content|Strict-Transpo
 
 ---
 
-## 🔄 MANUTENÇÃO
+## � MONITORAMENTO (UptimeRobot / Keep-Alive)
+
+### Health Check Endpoints
+
+O backend possui endpoints dedicados para monitoramento de disponibilidade:
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/health` | GET | Health check completo (API + Banco) |
+| `/health` | HEAD | Versão sem body (economia de bandwidth) |
+| `/health/ping` | GET | Ping simples - resposta instantânea |
+
+### Resposta do `/health`:
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-21T12:00:00.000Z",
+  "uptime": 3600.5,
+  "api": {
+    "status": "ok",
+    "version": "1.0.0"
+  },
+  "database": {
+    "status": "connected",
+    "latency_ms": 150
+  }
+}
+```
+
+### Resposta do `/health/ping`:
+
+```json
+{
+  "pong": true,
+  "timestamp": "2026-01-21T12:00:00.000Z"
+}
+```
+
+### Configurar UptimeRobot (Evitar Sleep do Render)
+
+O plano gratuito do Render entra em sleep após 15 minutos de inatividade. Para evitar isso:
+
+1. Acesse [UptimeRobot](https://uptimerobot.com)
+2. Crie uma conta gratuita
+3. Adicione um novo monitor:
+   - **Tipo:** HTTP(s)
+   - **URL:** `https://preparatoriominsa2026.onrender.com/health/ping`
+   - **Intervalo:** 5 minutos
+   - **Timeout:** 30 segundos
+4. Configure alertas por email (opcional)
+
+### URLs de Monitoramento:
+
+```
+# Ping rápido (recomendado para UptimeRobot)
+https://preparatoriominsa2026.onrender.com/health/ping
+
+# Health check completo
+https://preparatoriominsa2026.onrender.com/health
+```
+
+---
+
+## �🔄 MANUTENÇÃO
 
 ### Monitoramento
 
@@ -268,4 +338,4 @@ Em caso de problemas de segurança:
 
 ---
 
-**Última atualização:** 20 de Janeiro de 2026
+**Última atualização:** 21 de Janeiro de 2026

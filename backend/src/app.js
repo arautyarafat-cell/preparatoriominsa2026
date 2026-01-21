@@ -20,6 +20,7 @@ import materialRoutes from './routes/materials.js';
 import decipherRoutes from './routes/decipher.js';
 import settingsRoutes from './routes/settings.js';
 import blockingRoutes from './routes/blocking.js';
+import healthRoutes from './routes/health.js';
 
 // Security Middleware
 import {
@@ -184,6 +185,7 @@ export async function buildApp() {
     fastify.register(decipherRoutes);
     fastify.register(settingsRoutes);
     fastify.register(blockingRoutes);
+    fastify.register(healthRoutes);
 
     // Payment routes (mix of public and protected)
     fastify.register(paymentRoutes);
