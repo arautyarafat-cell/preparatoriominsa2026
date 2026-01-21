@@ -378,4 +378,172 @@
     .medsim-wrapper .diagnosis-grid {
         grid-template-columns: 1fr;
     }
+
+    /* Header responsivo */
+    .medsim-wrapper header {
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    .medsim-wrapper .brand {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .medsim-wrapper .stats-bar {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        gap: 12px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .medsim-wrapper .header-actions {
+        flex-shrink: 0;
+        gap: 6px;
+    }
+
+    .medsim-wrapper .next-case-btn,
+    .medsim-wrapper .exit-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+        border-radius: 16px;
+    }
+
+    /* Tabs responsivas */
+    .medsim-wrapper .tabs {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .medsim-wrapper .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        flex: 1;
+        text-align: center;
+    }
+
+    /* Patient card */
+    .medsim-wrapper .patient-card {
+        padding: 1rem;
+    }
+
+    .medsim-wrapper .patient-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .medsim-wrapper .avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.8rem;
+    }
+
+    .medsim-wrapper .vital-signs {
+        font-size: 0.8rem;
+    }
+
+    .medsim-wrapper .log-panel {
+        height: 200px;
+        font-size: 0.8rem;
+    }
+
+    .medsim-wrapper .panel {
+        padding: 1rem;
+    }
+
+    .medsim-wrapper button.action-btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    .medsim-wrapper .diagnosis-btn {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    /* Modal responsivo */
+    .medsim-wrapper .modal {
+        padding: 1.25rem;
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .medsim-wrapper .modal h2 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    .medsim-wrapper header {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .medsim-wrapper .brand {
+        font-size: 1rem;
+    }
+
+    .medsim-wrapper .brand span {
+        font-size: 1.2rem;
+    }
+
+    .medsim-wrapper .stats-bar {
+        flex-direction: row;
+        gap: 8px;
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+
+    .medsim-wrapper .stats-bar span {
+        white-space: nowrap;
+    }
+
+    .medsim-wrapper .next-case-btn {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+    }
+
+    .medsim-wrapper .exit-btn {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+    }
+
+    .medsim-wrapper .tab-btn {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+    }
+
+    .medsim-wrapper main {
+        padding: 0.75rem;
+        gap: 1rem;
+    }
+
+    .medsim-wrapper .patient-card,
+    .medsim-wrapper .panel {
+        padding: 0.75rem;
+    }
+
+    .medsim-wrapper .avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .medsim-wrapper .vital-signs {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .medsim-wrapper .log-panel {
+        height: 150px;
+        font-size: 0.75rem;
+        padding: 0.75rem;
+    }
 }
