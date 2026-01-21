@@ -13,21 +13,31 @@ import { supabase } from '../lib/supabase.js';
 import { authenticate } from './auth.js';
 import { logSecurityEvent } from './security.js';
 
-// Lista de emails de administradores
-// Em produção, mover para variável de ambiente ou tabela de BD
-const ADMIN_EMAILS = [
+// Lista de emails de administradores (SEMPRE incluídos)
+// Estes emails têm acesso admin garantido
+const DEFAULT_ADMIN_EMAILS = [
     'admin@angolasaude.ao',
     'arautyarafat@gmail.com',
-    // Adicionar mais emails admin conforme necessário
 ];
 
-// Ou usar variável de ambiente
+// Combinar emails padrão com variável de ambiente
 function getAdminEmails() {
     const envAdmins = process.env.ADMIN_EMAILS;
+
+    // Começar com emails padrão
+    const allAdmins = new Set(DEFAULT_ADMIN_EMAILS.map(e => e.trim().toLowerCase()));
+
+    // Adicionar emails da variável de ambiente (se existir)
     if (envAdmins) {
-        return envAdmins.split(',').map(e => e.trim().toLowerCase());
+        envAdmins.split(',').forEach(e => {
+            const email = e.trim().toLowerCase();
+            if (email) allAdmins.add(email);
+        });
     }
-    return ADMIN_EMAILS.map(e => e.toLowerCase());
+
+    const adminList = Array.from(allAdmins);
+    console.log('[AdminAuth] Admin emails configured:', adminList);
+    return adminList;
 }
 
 /**
@@ -56,6 +66,10 @@ export async function requireAdmin(request, reply) {
     const userEmail = user.email.toLowerCase();
     const adminEmails = getAdminEmails();
 
+    // Log para debug
+    console.log('[AdminAuth] Checking admin access for:', userEmail);
+    console.log('[AdminAuth] Admin list includes user:', adminEmails.includes(userEmail));
+
     // Verificar se o email está na lista de admins
     const isAdmin = adminEmails.includes(userEmail);
 
@@ -69,18 +83,23 @@ export async function requireAdmin(request, reply) {
             .single();
 
         dbAdmin = data?.is_admin === true || data?.role === 'admin';
+        console.log('[AdminAuth] DB admin check:', { data, dbAdmin });
     } catch (e) {
+        console.log('[AdminAuth] DB check failed:', e.message);
         // Continuar sem verificação de BD se falhar
     }
 
     if (!isAdmin && !dbAdmin) {
+        console.log('[AdminAuth] ACCESS DENIED for:', userEmail);
         logSecurityEvent(request, 'ADMIN_ACCESS_DENIED', {
             email: userEmail,
-            reason: 'User is not admin'
+            reason: 'User is not admin',
+            adminEmails: adminEmails
         });
 
         return reply.code(403).send({
-            error: 'Acesso negado. Permissões de administrador necessárias.'
+            error: 'Acesso negado. Permissões de administrador necessárias.',
+            debug: { email: userEmail, isInList: isAdmin, isInDb: dbAdmin }
         });
     }
 
