@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../services/auth';
+import { API_URL } from '../config/api';
 
 interface User {
     id: string;
@@ -31,7 +32,7 @@ export const AdminUsers: React.FC = () => {
         try {
             const authHeaders = authService.getAuthHeaders();
             const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
-            const response = await fetch(`http://localhost:3001/users${query}`, {
+            const response = await fetch(`${API_URL}/users${query}`, {
                 headers: {
                     ...authHeaders
                 }
@@ -65,7 +66,7 @@ export const AdminUsers: React.FC = () => {
 
         try {
             const authHeaders = authService.getAuthHeaders();
-            const response = await fetch(`http://localhost:3001/users/${editingUser.id}/plan`, {
+            const response = await fetch(`${API_URL}/users/${editingUser.id}/plan`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export const AdminUsers: React.FC = () => {
             }
 
             const authHeaders = authService.getAuthHeaders();
-            const response = await fetch('http://localhost:3001/users', {
+            const response = await fetch(`${API_URL}/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify(newUser)
@@ -127,7 +128,7 @@ export const AdminUsers: React.FC = () => {
 
         try {
             const authHeaders = authService.getAuthHeaders();
-            const url = `http://localhost:3001/users/${user.id}/block`;
+            const url = `${API_URL}/users/${user.id}/block`;
             const method = isBlocked ? 'DELETE' : 'POST';
 
             const body = isBlocked ? { email: user.email } : { email: user.email, reason: 'Bloqueio administrativo' };
@@ -154,7 +155,7 @@ export const AdminUsers: React.FC = () => {
 
         try {
             const authHeaders = authService.getAuthHeaders();
-            const response = await fetch(`http://localhost:3001/users/${user.id}`, {
+            const response = await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify({ confirmEmail: user.email })

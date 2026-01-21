@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CATEGORIES } from '../constants';
 import { authService } from '../services/auth';
+import { API_URL } from '../config/api';
 
 interface BlockedUser {
     email: string;
@@ -26,7 +27,7 @@ export const AdminBlocking: React.FC = () => {
         setLoading(true);
         try {
             // Fetch blocking data
-            const blockRes = await fetch('http://localhost:3001/blocking', {
+            const blockRes = await fetch(`${API_URL}/blocking`, {
                 headers: authService.getAuthHeaders()
             });
             if (blockRes.ok) {
@@ -36,7 +37,7 @@ export const AdminBlocking: React.FC = () => {
             }
 
             // Fetch users
-            const usersRes = await fetch('http://localhost:3001/users', {
+            const usersRes = await fetch(`${API_URL}/users`, {
                 headers: authService.getAuthHeaders()
             });
             if (usersRes.ok) {
@@ -53,7 +54,7 @@ export const AdminBlocking: React.FC = () => {
 
     const handleBlockCategory = async (categoryId: string, categoryName: string) => {
         try {
-            const res = await fetch('http://localhost:3001/blocking/category', {
+            const res = await fetch(`${API_URL}/blocking/category`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export const AdminBlocking: React.FC = () => {
 
     const handleUnblockCategory = async (categoryId: string) => {
         try {
-            const res = await fetch(`http://localhost:3001/blocking/category/${categoryId}`, {
+            const res = await fetch(`${API_URL}/blocking/category/${categoryId}`, {
                 method: 'DELETE',
                 headers: authService.getAuthHeaders()
             });
@@ -94,7 +95,7 @@ export const AdminBlocking: React.FC = () => {
 
         setBlockingUser(true);
         try {
-            const res = await fetch('http://localhost:3001/blocking/user', {
+            const res = await fetch(`${API_URL}/blocking/user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ export const AdminBlocking: React.FC = () => {
 
     const handleUnblockUser = async (email: string) => {
         try {
-            const res = await fetch(`http://localhost:3001/blocking/user/${encodeURIComponent(email)}`, {
+            const res = await fetch(`${API_URL}/blocking/user/${encodeURIComponent(email)}`, {
                 method: 'DELETE',
                 headers: authService.getAuthHeaders()
             });
