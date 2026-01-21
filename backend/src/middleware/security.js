@@ -198,10 +198,17 @@ function getRateLimitType(path) {
  * 🛡️ Configurado para funcionar corretamente atrás de reverse proxies (Render/Vercel)
  */
 export async function rateLimiter(request, reply) {
+    // 🛡️ EXCLUIR endpoints de health check do rate limiting
+    // Isso permite que serviços de monitoramento (UptimeRobot, Pingdom, etc.)
+    // façam requests frequentes sem serem bloqueados
+    const path = request.url;
+    if (path === '/health' || path === '/health/ping' || path === '/') {
+        return; // Não aplicar rate limiting
+    }
+
     // Usar a função getClientIP para obter o IP real do cliente
     const ip = getClientIP(request);
     const userId = request.user?.id || 'anonymous';
-    const path = request.url;
 
     // Criar chave única: IP + User + Tipo de endpoint
     const limitType = getRateLimitType(path);
