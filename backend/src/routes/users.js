@@ -345,6 +345,8 @@ export default async function userRoutes(fastify, options) {
         const { plan, email } = request.body;
         const adminUser = request.user;
 
+        console.log('[UpdatePlan] Request received:', { id, plan, email, adminEmail: adminUser?.email });
+
         // Validar plano
         if (!['free', 'lite', 'pro', 'premier'].includes(plan)) {
             return reply.code(400).send({ error: 'Tipo de plano inválido' });
@@ -357,28 +359,42 @@ export default async function userRoutes(fastify, options) {
 
         try {
             // Verificar se o utilizador existe
+            console.log('[UpdatePlan] Checking if user exists:', id);
             const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(id);
 
-            if (userError || !user) {
+            if (userError) {
+                console.error('[UpdatePlan] Error getting user:', userError);
+                return reply.code(404).send({ error: 'Erro ao buscar utilizador: ' + userError.message });
+            }
+
+            if (!user) {
                 return reply.code(404).send({ error: 'Utilizador não encontrado' });
             }
 
             // Verificar se o email corresponde
             if (user.email !== email) {
+                console.log('[UpdatePlan] Email mismatch:', { expected: user.email, received: email });
                 return reply.code(400).send({ error: 'Email não corresponde ao utilizador' });
             }
 
             // Verificar se perfil existe
-            const { data: existingProfile } = await supabase
+            console.log('[UpdatePlan] Checking existing profile for:', email);
+            const { data: existingProfile, error: profileCheckError } = await supabase
                 .from('user_profiles')
                 .select('*')
                 .eq('email', email)
                 .single();
 
+            if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+                console.error('[UpdatePlan] Error checking profile:', profileCheckError);
+            }
+
             const previousPlan = existingProfile?.plan || 'free';
+            console.log('[UpdatePlan] Previous plan:', previousPlan, 'New plan:', plan);
 
             if (existingProfile) {
                 // Atualizar perfil existente
+                console.log('[UpdatePlan] Updating existing profile');
                 const { error: updateError } = await supabase
                     .from('user_profiles')
                     .update({
@@ -389,9 +405,16 @@ export default async function userRoutes(fastify, options) {
                     })
                     .eq('email', email);
 
-                if (updateError) throw updateError;
+                if (updateError) {
+                    console.error('[UpdatePlan] Update error:', updateError);
+                    return reply.code(500).send({
+                        error: 'Falha ao atualizar perfil: ' + updateError.message,
+                        details: updateError
+                    });
+                }
             } else {
                 // Criar novo perfil
+                console.log('[UpdatePlan] Creating new profile');
                 const { error: insertError } = await supabase
                     .from('user_profiles')
                     .insert({
@@ -402,7 +425,13 @@ export default async function userRoutes(fastify, options) {
                         created_by: adminUser.email
                     });
 
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error('[UpdatePlan] Insert error:', insertError);
+                    return reply.code(500).send({
+                        error: 'Falha ao criar perfil: ' + insertError.message,
+                        details: insertError
+                    });
+                }
             }
 
             // Log de auditoria
@@ -414,6 +443,8 @@ export default async function userRoutes(fastify, options) {
                 newPlan: plan
             });
 
+            console.log('[UpdatePlan] Success! Plan updated from', previousPlan, 'to', plan);
+
             return {
                 success: true,
                 message: `Plano do utilizador atualizado para ${plan}`,
@@ -421,8 +452,11 @@ export default async function userRoutes(fastify, options) {
                 newPlan: plan
             };
         } catch (error) {
+            console.error('[UpdatePlan] Unexpected error:', error);
             request.log.error(error);
-            return reply.code(500).send({ error: 'Falha ao atualizar plano do utilizador' });
+            return reply.code(500).send({
+                error: 'Falha ao atualizar plano do utilizador: ' + error.message
+            });
         }
     });
 
