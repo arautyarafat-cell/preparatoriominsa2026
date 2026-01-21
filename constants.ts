@@ -9,6 +9,7 @@ export const CATEGORIES: Category[] = [
     color: 'bg-emerald-500',
     totalQuestions: 1000,
     totalTopics: 100,
+    disponivel: true,
   },
   {
     id: CategoryId.MEDICO,
@@ -18,6 +19,7 @@ export const CATEGORIES: Category[] = [
     color: 'bg-blue-600',
     totalQuestions: 2000,
     totalTopics: 200,
+    disponivel: false, // Indisponível - apenas admins podem acessar
   },
   {
     id: CategoryId.ENFERMAGEM,
@@ -27,6 +29,7 @@ export const CATEGORIES: Category[] = [
     color: 'bg-teal-600',
     totalQuestions: 1500,
     totalTopics: 150,
+    disponivel: false, // Indisponível - apenas admins podem acessar
   },
   {
     id: CategoryId.TEC_FARMACIA,
@@ -36,6 +39,7 @@ export const CATEGORIES: Category[] = [
     color: 'bg-indigo-500',
     totalQuestions: 1200,
     totalTopics: 120,
+    disponivel: false, // Indisponível - apenas admins podem acessar
   },
   {
     id: CategoryId.ANALISES_CLINICAS,
@@ -45,6 +49,7 @@ export const CATEGORIES: Category[] = [
     color: 'bg-purple-600',
     totalQuestions: 1300,
     totalTopics: 130,
+    disponivel: false, // Indisponível - apenas admins podem acessar
   },
 ];
 

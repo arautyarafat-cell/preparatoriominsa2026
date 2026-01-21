@@ -251,7 +251,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {CATEGORIES.map((cat) => {
-              const isBlocked = blockedCategories.includes(cat.id);
+              // Verificar se usuário é admin
+              const isAdmin = user?.role === 'admin' ||
+                user?.email?.toLowerCase() === 'arautyarafat@gmail.com' ||
+                user?.email?.toLowerCase() === 'admin@angolasaude.ao';
+
+              // Categoria bloqueada pelo servidor OU não disponível para não-admins
+              const isBlockedByServer = blockedCategories.includes(cat.id);
+              const isUnavailable = cat.disponivel === false && !isAdmin;
+              const isBlocked = isBlockedByServer || isUnavailable;
+
               return (
                 <button
                   key={cat.id}
@@ -299,12 +308,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                     </div>
                   )}
 
-                  {/* Blocked message */}
-                  {/* Blocked message */}
+                  {/* Blocked/Unavailable message */}
                   {isBlocked && (
-                    <div className="w-full mt-6 flex items-center gap-2 text-xs font-bold text-red-500/70 uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                      Indisponível
+                    <div className="w-full mt-6 flex items-center gap-2 text-xs font-bold text-amber-600/80 uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      {isUnavailable ? 'Em Breve' : 'Indisponível'}
                     </div>
                   )}
                 </button>

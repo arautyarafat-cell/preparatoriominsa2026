@@ -15,6 +15,7 @@ export interface Category {
   color: string;
   totalQuestions: number;
   totalTopics: number;
+  disponivel?: boolean; // Se false, apenas admins podem acessar
 }
 
 export interface Topic {

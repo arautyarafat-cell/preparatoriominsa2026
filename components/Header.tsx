@@ -167,24 +167,50 @@ export const Header: React.FC<HeaderProps> = ({
 
                             {/* Categories List */}
                             <div className="flex flex-col gap-3 pb-6">
-                                {CATEGORIES.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => { onSelectCategory(cat); setShowMobileMenu(false); }}
-                                        className="flex items-center gap-4 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-md transition-all group"
-                                    >
-                                        <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center text-white text-xl shadow-lg shrink-0`}>
-                                            {cat.icon}
-                                        </div>
-                                        <div className="flex-1 text-left">
-                                            <div className="font-bold text-slate-900 text-base">{cat.title}</div>
-                                            <div className="text-[10px] text-slate-400 font-bold">{cat.totalQuestions} questões</div>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-slate-500 transition-colors">
-                                            <Icon name="chevron-right" size="sm" />
-                                        </div>
-                                    </button>
-                                ))}
+                                {CATEGORIES.map(cat => {
+                                    // Verificar se usuário é admin
+                                    const isAdmin = user?.role === 'admin' ||
+                                        user?.email?.toLowerCase() === 'arautyarafat@gmail.com' ||
+                                        user?.email?.toLowerCase() === 'admin@angolasaude.ao';
+
+                                    // Categoria não disponível para não-admins
+                                    const isUnavailable = cat.disponivel === false && !isAdmin;
+
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => {
+                                                if (!isUnavailable) {
+                                                    onSelectCategory(cat);
+                                                    setShowMobileMenu(false);
+                                                }
+                                            }}
+                                            disabled={isUnavailable}
+                                            className={`flex items-center gap-4 p-3 rounded-2xl border shadow-sm transition-all group ${isUnavailable
+                                                    ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed'
+                                                    : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-md'
+                                                }`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shrink-0 ${isUnavailable ? 'bg-slate-300 grayscale' : cat.color
+                                                }`}>
+                                                {isUnavailable ? '🔒' : cat.icon}
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <div className={`font-bold text-base ${isUnavailable ? 'text-slate-500' : 'text-slate-900'}`}>
+                                                    {cat.title}
+                                                </div>
+                                                <div className="text-[10px] font-bold text-slate-400">
+                                                    {isUnavailable ? 'Em Breve' : `${cat.totalQuestions} questões`}
+                                                </div>
+                                            </div>
+                                            {!isUnavailable && (
+                                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-slate-500 transition-colors">
+                                                    <Icon name="chevron-right" size="sm" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
