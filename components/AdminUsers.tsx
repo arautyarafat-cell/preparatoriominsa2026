@@ -31,6 +31,8 @@ export const AdminUsers: React.FC = () => {
         setLoading(true);
         try {
             const authHeaders = authService.getAuthHeaders();
+            console.log('[AdminUsers] Fetching users with headers:', Object.keys(authHeaders));
+
             const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
             const response = await fetch(`${API_URL}/users${query}`, {
                 headers: {
@@ -40,9 +42,19 @@ export const AdminUsers: React.FC = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setUsers(data.users || []); // Handle { users: [...] } structure
+                setUsers(data.users || []);
             } else {
-                console.error('Error fetching users:', response.status, await response.text());
+                const errorText = await response.text();
+                console.error('Error fetching users:', response.status, errorText);
+
+                // Mostrar mensagem específica de erro
+                if (response.status === 401) {
+                    alert('Erro de autenticação. Por favor, faça login novamente.');
+                } else if (response.status === 403) {
+                    alert('Acesso negado. Você não tem permissões de administrador.');
+                } else if (response.status === 400) {
+                    alert('Erro de requisição: ' + errorText);
+                }
             }
         } catch (error) {
             console.error('Error fetching users:', error);
