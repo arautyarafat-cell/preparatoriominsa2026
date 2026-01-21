@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import StudyArea from './components/StudyArea';
 import LessonArea from './components/LessonArea';
@@ -18,7 +18,7 @@ import { Login } from './components/Login';
 import { UpdatePassword } from './components/UpdatePassword';
 import { ViewState, Category, Topic } from './types';
 import { MOCK_TOPICS, CATEGORIES } from './constants';
-import { authService } from './services/auth';
+import { authService, setupSessionManager } from './services/auth';
 import TermsAndPrivacy from './components/TermsAndPrivacy';
 import HowItWorks from './components/HowItWorks';
 import { EXEMPLO_AULA_POLITRAUMATIZADO } from './types/lessonExamples';
@@ -34,8 +34,30 @@ const App: React.FC = () => {
     const [selectedLesson, setSelectedLesson] = useState<DigitalLesson | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: string } | null>(null);
     const [user, setUser] = useState<any>(null);
+    const [sessionExpired, setSessionExpired] = useState(false);
 
-    // Initialize Auth and sync user plan
+    // Handler para sessão expirada
+    const handleSessionExpired = useCallback(() => {
+        console.log('[App] Session expired - redirecting to login');
+        setSessionExpired(true);
+        setUser(null);
+
+        // Se não está no login ou update password, redirecionar
+        if (viewState !== ViewState.LOGIN && viewState !== ViewState.UPDATE_PASSWORD) {
+            setViewState(ViewState.LOGIN);
+        }
+    }, [viewState]);
+
+    // Handler para logout
+    const handleLogout = useCallback(() => {
+        console.log('[App] User logged out');
+        authService.logout();
+        setUser(null);
+        setSessionExpired(false);
+        setViewState(ViewState.DASHBOARD);
+    }, []);
+
+    // Initialize Auth and setup session manager
     useEffect(() => {
         // Detectar rota de redefinição de senha OU hash de recuperação (magic link)
         const hash = window.location.hash;
@@ -44,15 +66,29 @@ const App: React.FC = () => {
         if (window.location.pathname === '/update-password' || isRecoveryHash) {
             console.log('Detectado fluxo de recuperação de senha');
             setViewState(ViewState.UPDATE_PASSWORD);
-            // Even if recovery, we might want to let the preloader finish or force finish it?
-            // Let's let the preloader run its course as "app init".
         }
 
         const currentUser = authService.getUser();
         if (currentUser) {
             setUser(currentUser);
+        }
 
-            // Sync plan with server in background (to catch admin updates)
+        // Setup session manager com callbacks
+        const cleanup = setupSessionManager({
+            onSessionExpired: handleSessionExpired,
+            onSessionRefreshed: () => {
+                console.log('[App] Session refreshed');
+                // Atualizar user data se necessário
+                const updatedUser = authService.getUser();
+                if (updatedUser) {
+                    setUser(updatedUser);
+                }
+            },
+            onLogout: handleLogout
+        });
+
+        // Sync plan with server in background (apenas se autenticado)
+        if (currentUser && authService.getToken()) {
             authService.refreshUserPlan().then(updatedUser => {
                 if (updatedUser && updatedUser.plan !== currentUser.plan) {
                     setUser(updatedUser);
@@ -61,7 +97,9 @@ const App: React.FC = () => {
                 console.warn('Failed to sync user plan:', err);
             });
         }
-    }, []);
+
+        return cleanup;
+    }, [handleSessionExpired, handleLogout]);
 
     if (loading) {
         return <Preloader onComplete={() => setLoading(false)} />;
@@ -174,12 +212,7 @@ const App: React.FC = () => {
         setViewState(ViewState.HOW_IT_WORKS);
     };
 
-    // 12. Logout
-    const handleLogout = () => {
-        authService.logout();
-        setUser(null);
-        setViewState(ViewState.DASHBOARD);
-    };
+    // 12. Logout - agora usa o callback handleLogout definido acima
 
     // Navigation Handlers
     const handleBackToDashboard = () => {

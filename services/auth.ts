@@ -4,6 +4,18 @@ import { API_URL } from '../config/api';
 // Re-exportar API_URL para compatibilidade com componentes existentes
 export { API_URL };
 
+// Eventos customizados para gestão de sessão
+export const AUTH_EVENTS = {
+    SESSION_EXPIRED: 'auth:session-expired',
+    SESSION_REFRESHED: 'auth:session-refreshed',
+    SESSION_INVALID: 'auth:session-invalid',
+    LOGOUT: 'auth:logout'
+};
+
+// Flag global para evitar múltiplos refreshes simultâneos
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
 /**
  * 🛡️ SERVIÇO DE AUTENTICAÇÃO (Frontend)
  * Angola Saúde 2026
@@ -319,46 +331,130 @@ export const authService = {
 
     /**
      * Tenta renovar a sessão usando refresh token
-     * NOTA: Não chama persistSession para evitar loop circular
+     * NOTA: Usa singleton pattern para evitar múltiplas chamadas simultâneas
      */
     async refreshSession(): Promise<string | null> {
         const refreshToken = this.getRefreshToken();
-        if (!refreshToken) return null;
-
-        try {
-            const response = await fetch(`${API_URL}/auth/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken })
-            });
-
-            if (!response.ok) {
-                // Refresh falhou - limpar tokens mas não fazer logout completo (evita loop)
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('refresh_token');
-                return null;
-            }
-
-            const data = await response.json();
-            if (data.session) {
-                // Guardar novos tokens directamente (sem chamar persistSession)
-                localStorage.setItem('auth_token', data.session.access_token);
-                if (data.session.refresh_token) {
-                    localStorage.setItem('refresh_token', data.session.refresh_token);
-                }
-                // Actualizar user data se disponível
-                if (data.user) {
-                    const currentUser = this.getUser();
-                    const updatedUser = { ...currentUser, ...data.user };
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                }
-                return data.session.access_token;
-            }
-            return null;
-        } catch (e) {
-            console.error('Refresh token failed:', e);
+        if (!refreshToken) {
+            console.log('[Auth] No refresh token available');
             return null;
         }
+
+        // Se já está a fazer refresh, retorna a promise existente
+        if (isRefreshing && refreshPromise) {
+            console.log('[Auth] Refresh already in progress, waiting...');
+            return refreshPromise;
+        }
+
+        isRefreshing = true;
+
+        refreshPromise = (async (): Promise<string | null> => {
+            try {
+                console.log('[Auth] Attempting session refresh...');
+
+                const response = await fetch(`${API_URL}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+
+                if (!response.ok) {
+                    console.warn('[Auth] Refresh failed with status:', response.status);
+
+                    // Refresh falhou - sessão expirada
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('refresh_token');
+
+                    // Disparar evento de sessão expirada
+                    window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_EXPIRED, {
+                        detail: { reason: 'refresh_failed' }
+                    }));
+
+                    return null;
+                }
+
+                const data = await response.json();
+                if (data.session) {
+                    // Guardar novos tokens directamente
+                    localStorage.setItem('auth_token', data.session.access_token);
+                    if (data.session.refresh_token) {
+                        localStorage.setItem('refresh_token', data.session.refresh_token);
+                    }
+
+                    // Actualizar user data se disponível
+                    if (data.user) {
+                        const currentUser = this.getUser();
+                        const updatedUser = { ...currentUser, ...data.user };
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                    }
+
+                    console.log('[Auth] Session refreshed successfully');
+
+                    // Disparar evento de sessão renovada
+                    window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_REFRESHED));
+
+                    return data.session.access_token;
+                }
+
+                return null;
+            } catch (e) {
+                console.error('[Auth] Refresh token error:', e);
+
+                // Disparar evento de sessão inválida
+                window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_INVALID, {
+                    detail: { error: e }
+                }));
+
+                return null;
+            } finally {
+                isRefreshing = false;
+                refreshPromise = null;
+            }
+        })();
+
+        return refreshPromise;
+    },
+
+    /**
+     * Verifica se a sessão está válida fazendo um request ao servidor
+     */
+    async validateSession(): Promise<boolean> {
+        const token = this.getToken();
+        if (!token) return false;
+
+        try {
+            const response = await fetch(`${API_URL}/auth/me`, {
+                method: 'GET',
+                headers: this.getAuthHeaders()
+            });
+
+            if (response.ok) {
+                return true;
+            }
+
+            if (response.status === 401) {
+                // Token expirado, tentar refresh
+                const newToken = await this.refreshSession();
+                return !!newToken;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('[Auth] Session validation error:', error);
+            return false;
+        }
+    },
+
+    /**
+     * Limpa sessão local sem chamar logout no servidor
+     * Útil quando a sessão já expirou
+     */
+    clearLocalSession() {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+
+        window.dispatchEvent(new CustomEvent(AUTH_EVENTS.LOGOUT));
     },
 
     /**
@@ -411,6 +507,15 @@ export async function authenticatedFetch(
 ): Promise<Response> {
     let authHeaders = authService.getAuthHeaders();
 
+    // Se não há token, disparar evento e retornar erro
+    if (!authService.getToken()) {
+        console.warn('[AuthFetch] No token available');
+        window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_EXPIRED, {
+            detail: { reason: 'no_token' }
+        }));
+        throw new Error('Not authenticated');
+    }
+
     let response = await fetch(`${API_URL}${url}`, {
         ...options,
         headers: {
@@ -422,6 +527,7 @@ export async function authenticatedFetch(
 
     // Se 401, tentar refresh token
     if (response.status === 401) {
+        console.log('[AuthFetch] Received 401, attempting refresh...');
         const newToken = await authService.refreshSession();
 
         if (newToken) {
@@ -435,18 +541,161 @@ export async function authenticatedFetch(
                     ...options.headers
                 }
             });
+        } else {
+            // Refresh falhou - sessão expirada
+            console.warn('[AuthFetch] Refresh failed, session expired');
+            window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_EXPIRED, {
+                detail: { reason: 'refresh_failed', url }
+            }));
         }
     }
 
-    // Se 401 ou 403 (ainda falhando), verificar device mismatch
+    // Se 401 ou 403 (ainda falhando), verificar device mismatch ou sessão expirada
     if (response.status === 401 || response.status === 403) {
         const data = await response.clone().json().catch(() => ({}));
 
         if (data.code === 'DEVICE_MISMATCH') {
+            console.warn('[AuthFetch] Device mismatch detected');
+            window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_INVALID, {
+                detail: { reason: 'device_mismatch' }
+            }));
+
+            // Mostrar alerta e fazer logout
             alert('A sua sessão foi terminada porque a conta está em uso noutro dispositivo.');
             authService.logout();
+        } else if (response.status === 401) {
+            // Token inválido e refresh falhou
+            console.warn('[AuthFetch] Session completely expired');
+            window.dispatchEvent(new CustomEvent(AUTH_EVENTS.SESSION_EXPIRED, {
+                detail: { reason: 'token_invalid', url }
+            }));
         }
     }
 
     return response;
+}
+
+// ============================================================
+// HELPER: Session Manager para App.tsx
+// ============================================================
+
+/**
+ * Configura gestão automática de sessão
+ * Deve ser chamado uma vez no componente raiz (App.tsx)
+ */
+export function setupSessionManager(callbacks: {
+    onSessionExpired?: () => void;
+    onSessionRefreshed?: () => void;
+    onLogout?: () => void;
+}) {
+    const REFRESH_INTERVAL = 50 * 60 * 1000; // 50 minutos (antes do JWT expirar em 60 min)
+    let refreshTimer: NodeJS.Timeout | null = null;
+
+    // Handler para visibilidade da página
+    const handleVisibilityChange = async () => {
+        if (document.visibilityState === 'visible' && authService.isAuthenticated()) {
+            console.log('[SessionManager] Page visible, checking session...');
+            const isValid = await authService.validateSession();
+            if (!isValid) {
+                console.warn('[SessionManager] Session invalid after visibility change');
+                callbacks.onSessionExpired?.();
+            }
+        }
+    };
+
+    // Handler para foco da janela
+    const handleWindowFocus = async () => {
+        if (authService.isAuthenticated()) {
+            console.log('[SessionManager] Window focused, refreshing session...');
+            await authService.refreshSession();
+        }
+    };
+
+    // Handler para eventos de sessão expirada
+    const handleSessionExpired = () => {
+        console.log('[SessionManager] Session expired event received');
+        stopRefreshTimer();
+        callbacks.onSessionExpired?.();
+    };
+
+    // Handler para eventos de sessão renovada
+    const handleSessionRefreshed = () => {
+        console.log('[SessionManager] Session refreshed event received');
+        callbacks.onSessionRefreshed?.();
+    };
+
+    // Handler para logout
+    const handleLogout = () => {
+        console.log('[SessionManager] Logout event received');
+        stopRefreshTimer();
+        callbacks.onLogout?.();
+    };
+
+    // Handler para mudanças no localStorage (logout em outra aba)
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'auth_token' && !e.newValue) {
+            console.log('[SessionManager] Token removed in another tab');
+            stopRefreshTimer();
+            callbacks.onLogout?.();
+        }
+    };
+
+    // Inicia timer de refresh automático
+    const startRefreshTimer = () => {
+        if (refreshTimer) clearInterval(refreshTimer);
+
+        refreshTimer = setInterval(async () => {
+            if (authService.isAuthenticated()) {
+                console.log('[SessionManager] Auto-refreshing session...');
+                const newToken = await authService.refreshSession();
+                if (!newToken) {
+                    console.warn('[SessionManager] Auto-refresh failed');
+                    callbacks.onSessionExpired?.();
+                }
+            }
+        }, REFRESH_INTERVAL);
+
+        console.log('[SessionManager] Refresh timer started');
+    };
+
+    // Para timer de refresh
+    const stopRefreshTimer = () => {
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+            console.log('[SessionManager] Refresh timer stopped');
+        }
+    };
+
+    // Registrar listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener(AUTH_EVENTS.SESSION_EXPIRED, handleSessionExpired);
+    window.addEventListener(AUTH_EVENTS.SESSION_REFRESHED, handleSessionRefreshed);
+    window.addEventListener(AUTH_EVENTS.LOGOUT, handleLogout);
+    window.addEventListener('storage', handleStorageChange);
+
+    // Iniciar refresh timer se autenticado
+    if (authService.isAuthenticated()) {
+        startRefreshTimer();
+
+        // Refresh inicial para garantir sessão válida
+        authService.refreshSession().then((token) => {
+            if (!token && authService.getRefreshToken()) {
+                console.warn('[SessionManager] Initial refresh failed');
+                callbacks.onSessionExpired?.();
+            }
+        });
+    }
+
+    // Retorna função de cleanup
+    return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleWindowFocus);
+        window.removeEventListener(AUTH_EVENTS.SESSION_EXPIRED, handleSessionExpired);
+        window.removeEventListener(AUTH_EVENTS.SESSION_REFRESHED, handleSessionRefreshed);
+        window.removeEventListener(AUTH_EVENTS.LOGOUT, handleLogout);
+        window.removeEventListener('storage', handleStorageChange);
+        stopRefreshTimer();
+    };
 }
