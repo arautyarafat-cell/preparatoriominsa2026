@@ -139,35 +139,36 @@ const RATE_LIMITS = {
     // Endpoints gerais - navegação normal
     default: {
         windowMs: 15 * 60 * 1000, // 15 minutos
-        maxRequests: isDevelopment ? 2000 : 100, // 100 req/15min em prod
+        maxRequests: isDevelopment ? 2000 : 300, // 300 req/15min em prod (era 100)
         message: 'Demasiados pedidos. Aguarde alguns minutos.'
     },
 
     // Endpoints de autenticação - proteger contra brute force
+    // NOTA: Inclui /auth/refresh que é chamado automaticamente
     auth: {
         windowMs: 15 * 60 * 1000, // 15 minutos
-        maxRequests: isDevelopment ? 500 : 10, // 10 tentativas/15min em prod
+        maxRequests: isDevelopment ? 500 : 60, // 60 tentativas/15min em prod (era 10)
         message: 'Demasiadas tentativas de login. Aguarde 15 minutos.'
     },
 
     // Endpoints de IA - proteger contra abuso e custos elevados
     ai: {
         windowMs: 60 * 60 * 1000, // 1 hora
-        maxRequests: isDevelopment ? 500 : 30, // 30 req/hora em prod
+        maxRequests: isDevelopment ? 500 : 50, // 50 req/hora em prod (era 30)
         message: 'Limite de uso de IA atingido. Aguarde 1 hora.'
     },
 
     // Endpoints admin - mais restritivo para proteger operações sensíveis
     admin: {
         windowMs: 15 * 60 * 1000, // 15 minutos
-        maxRequests: isDevelopment ? 1000 : 50, // 50 req/15min em prod
+        maxRequests: isDevelopment ? 1000 : 150, // 150 req/15min em prod (era 50)
         message: 'Limite de operações admin atingido.'
     },
 
     // Upload de ficheiros - proteger storage
     upload: {
         windowMs: 60 * 60 * 1000, // 1 hora
-        maxRequests: isDevelopment ? 200 : 20, // 20 uploads/hora em prod
+        maxRequests: isDevelopment ? 200 : 30, // 30 uploads/hora em prod (era 20)
         message: 'Limite de uploads atingido. Aguarde 1 hora.'
     }
 };
