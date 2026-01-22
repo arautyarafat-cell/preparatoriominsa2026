@@ -84,7 +84,13 @@ export async function buildApp() {
 
             if (isProduction) {
                 // Produção: verificar lista de origens permitidas
-                if (allowedOrigins.includes(origin)) {
+                // Permitir também subdomínios do Vercel e Render para deploys de preview/staging
+                const isAllowed = allowedOrigins.includes(origin) ||
+                    origin.endsWith('.vercel.app') ||
+                    origin.endsWith('.onrender.com') ||
+                    origin.includes('angolasaude'); // Permitir domínio customizado se contiver o nome do projeto
+
+                if (isAllowed) {
                     callback(null, true);
                 } else {
                     fastify.log.warn(`CORS blocked origin: ${origin}`);
