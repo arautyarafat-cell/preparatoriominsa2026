@@ -222,26 +222,26 @@ const FlashcardArea: React.FC<FlashcardAreaProps> = ({ category, onExit }) => {
 
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col font-sans overflow-hidden">
-            {/* Header */}
-            <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm z-10">
-                <button onClick={onExit} className="text-slate-500 hover:text-slate-900 font-medium text-sm flex items-center gap-2 w-20">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    Sair
+            {/* Header - Responsivo */}
+            <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-sm z-10">
+                <button onClick={onExit} className="text-slate-500 hover:text-slate-900 font-medium text-sm flex items-center gap-1 sm:gap-2 min-w-[50px] sm:w-20">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    <span className="hidden sm:inline">Sair</span>
                 </button>
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Flashcards • {category.title}</span>
+                <div className="flex flex-col items-center flex-1 mx-2">
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider sm:tracking-widest text-center line-clamp-1">Flashcards • {category.title.length > 15 ? category.title.substring(0, 15) + '...' : category.title}</span>
                     <span className="text-sm font-bold text-slate-900">{currentIndex + 1} / {cards.length}</span>
                 </div>
-                <div className="w-20 flex justify-end">
+                <div className="min-w-[50px] sm:w-20 flex justify-end">
                     <button
                         onClick={handleLoadMore}
                         disabled={loadingMore}
-                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors"
                     >
                         {loadingMore ? (
                             <div className="w-3 h-3 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                         ) : (
-                            <span>+ Cards</span>
+                            <span className="whitespace-nowrap">+ <span className="hidden sm:inline">Cards</span></span>
                         )}
                     </button>
                 </div>
@@ -252,110 +252,111 @@ const FlashcardArea: React.FC<FlashcardAreaProps> = ({ category, onExit }) => {
                 <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}></div>
             </div>
 
-            {/* Card Area */}
-            <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+            {/* Card Area - Responsivo */}
+            <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 relative">
                 {loadingMore && (
-                    <div className="absolute top-4 bg-slate-800 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-slide-up z-20 flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Adicionando novos termos...
+                    <div className="absolute top-2 sm:top-4 bg-slate-800 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg animate-slide-up z-20 flex items-center gap-2">
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span className="hidden sm:inline">Adicionando novos termos...</span>
+                        <span className="sm:hidden">Carregando...</span>
                     </div>
                 )}
 
-                <div className="w-full max-w-5xl flex items-center justify-center gap-4 md:gap-8">
-                    {/* Previous Button */}
+                <div className="w-full max-w-5xl flex items-center justify-center gap-2 sm:gap-4 md:gap-8">
+                    {/* Previous Button - Responsivo */}
                     <button
                         onClick={handlePrevious}
                         disabled={currentIndex === 0}
-                        className={`p-4 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm transition-all
+                        className={`p-2 sm:p-3 md:p-4 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm transition-all flex-shrink-0
                         ${currentIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-50 hover:text-indigo-600 hover:scale-110 active:scale-95'}
                     `}
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                     </button>
 
-                    {/* The Card */}
+                    {/* The Card - Responsivo com altura adaptativa */}
                     <div
-                        className="relative w-full max-w-xl aspect-[4/3] group cursor-pointer perspective-1000"
+                        className="relative w-full max-w-[280px] sm:max-w-md md:max-w-xl h-[280px] sm:h-[320px] md:h-[380px] group cursor-pointer"
                         onClick={handleFlip}
                         style={{ perspective: '1000px' }}
                     >
                         <div
-                            className={`relative w-full h-full duration-500 preserve-3d transition-all shadow-2xl rounded-[2rem] group-hover:scale-[1.02] group-hover:shadow-indigo-500/30`}
+                            className={`relative w-full h-full duration-500 preserve-3d transition-all shadow-xl sm:shadow-2xl rounded-2xl sm:rounded-[2rem] group-hover:scale-[1.02] group-hover:shadow-indigo-500/30`}
                             style={{
                                 transformStyle: 'preserve-3d',
                                 transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
                             }}
                         >
-                            {/* Front */}
+                            {/* Front - Responsivo */}
                             <div
-                                className="absolute inset-0 bg-white rounded-[2rem] flex flex-col items-center justify-center p-8 text-center border border-slate-100"
+                                className="absolute inset-0 bg-white rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center border border-slate-100"
                                 style={{ backfaceVisibility: 'hidden' }}
                             >
-                                <span className="absolute top-8 text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
+                                <span className="absolute top-4 sm:top-6 md:top-8 text-[10px] sm:text-xs font-bold text-indigo-500 bg-indigo-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider">
                                     Termo / Pergunta
                                 </span>
-                                <h3 className="text-3xl md:text-4xl font-display font-bold text-slate-800 leading-tight">
+                                <h3 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-display font-bold text-slate-800 leading-tight px-2 overflow-hidden">
                                     {currentCard.front}
                                 </h3>
-                                <p className="absolute bottom-8 text-slate-400 text-sm font-medium animate-pulse">
+                                <p className="absolute bottom-4 sm:bottom-6 md:bottom-8 text-slate-400 text-xs sm:text-sm font-medium animate-pulse">
                                     Toque para ver a resposta
                                 </p>
                             </div>
 
-                            {/* Back */}
+                            {/* Back - Responsivo */}
                             <div
-                                className="absolute inset-0 bg-indigo-600 rounded-[2rem] flex flex-col items-center justify-center p-10 text-center text-white"
+                                className="absolute inset-0 bg-indigo-600 rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 text-center text-white overflow-auto"
                                 style={{
                                     backfaceVisibility: 'hidden',
                                     transform: 'rotateY(180deg)'
                                 }}
                             >
-                                <span className="absolute top-8 text-xs font-bold text-white/80 bg-white/20 px-3 py-1 rounded-full uppercase tracking-wider">
+                                <span className="absolute top-4 sm:top-6 md:top-8 text-[10px] sm:text-xs font-bold text-white/80 bg-white/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider">
                                     Definição / Resposta
                                 </span>
-                                <p className="text-xl md:text-2xl font-medium leading-relaxed">
+                                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-medium leading-relaxed mt-6 sm:mt-4 px-1">
                                     {currentCard.back}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Next Button */}
+                    {/* Next Button - Responsivo */}
                     <button
                         onClick={handleNext}
-                        className="p-4 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 hover:scale-110 active:scale-95"
+                        className="p-2 sm:p-3 md:p-4 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 hover:scale-110 active:scale-95 flex-shrink-0"
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                     </button>
                 </div>
 
-                {/* Controls */}
-                <div className={`flex items-center gap-4 mt-12 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 pointer-events-none'}`}>
+                {/* Controls - Responsivo */}
+                <div className={`flex items-center gap-3 sm:gap-4 mt-6 sm:mt-10 md:mt-12 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 pointer-events-none'}`}>
                     <button
                         onClick={(e) => { e.stopPropagation(); handleRate('review'); }}
-                        className="flex flex-col items-center gap-2 group"
+                        className="flex flex-col items-center gap-1 sm:gap-2 group"
                     >
-                        <div className="w-16 h-16 rounded-2xl bg-white border-2 border-amber-200 text-amber-500 flex items-center justify-center text-2xl shadow-sm group-hover:bg-amber-50 group-hover:scale-110 transition-all">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-white border-2 border-amber-200 text-amber-500 flex items-center justify-center text-xl sm:text-2xl shadow-sm group-hover:bg-amber-50 group-hover:scale-110 transition-all active:scale-95">
                             🤔
                         </div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-600">Revisar</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-600">Revisar</span>
                     </button>
 
-                    <div className="w-px h-12 bg-slate-300 mx-4"></div>
+                    <div className="w-px h-8 sm:h-10 md:h-12 bg-slate-300 mx-2 sm:mx-4"></div>
 
                     <button
                         onClick={(e) => { e.stopPropagation(); handleRate('mastered'); }}
-                        className="flex flex-col items-center gap-2 group"
+                        className="flex flex-col items-center gap-1 sm:gap-2 group"
                     >
-                        <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-200 group-hover:bg-indigo-500 group-hover:scale-110 transition-all">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-200 group-hover:bg-indigo-500 group-hover:scale-110 transition-all active:scale-95">
                             🧠
                         </div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-600">Dominei</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-600">Dominei</span>
                     </button>
                 </div>
 
                 {!isFlipped && (
-                    <div className="mt-12 text-slate-400 text-sm h-[88px] flex items-center">
+                    <div className="mt-6 sm:mt-10 md:mt-12 text-slate-400 text-xs sm:text-sm h-[60px] sm:h-[88px] flex items-center">
                         (Vire o cartão para avaliar)
                     </div>
                 )}
