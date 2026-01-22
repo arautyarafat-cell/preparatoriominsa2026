@@ -21,6 +21,7 @@ import decipherRoutes from './routes/decipher.js';
 import settingsRoutes from './routes/settings.js';
 import blockingRoutes from './routes/blocking.js';
 import healthRoutes from './routes/health.js';
+import securityRoutes from './routes/security.js';
 
 // Security Middleware
 import {
@@ -192,6 +193,7 @@ export async function buildApp() {
 
     // Admin routes (should have additional protection)
     fastify.register(userRoutes);
+    fastify.register(securityRoutes);
 
     // ============================================================
     // ERROR HANDLER GLOBAL

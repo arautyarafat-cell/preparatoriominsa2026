@@ -11,6 +11,7 @@ import { AdminDecipherTerms } from './AdminDecipherTerms';
 import AdminBlocking from './AdminBlocking';
 import { AdminYoutubeSettings } from './AdminYoutubeSettings';
 import { AdminTrilhas } from './AdminTrilhas';
+import { AdminSecurity } from './AdminSecurity';
 
 
 // Configure PDF.js worker
@@ -28,7 +29,7 @@ interface FileItem {
 }
 
 const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking' | 'youtube' | 'trilhas'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking' | 'youtube' | 'trilhas' | 'security'>('upload');
 
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -847,6 +848,11 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
                                 id: 'blocking',
                                 label: 'Bloqueios Usuários',
                                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                            },
+                            {
+                                id: 'security',
+                                label: 'Segurança',
+                                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             },
                         ].map((tab) => (
                             <button
@@ -1820,6 +1826,10 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
 
                     {activeTab === 'trilhas' && (
                         <AdminTrilhas />
+                    )}
+
+                    {activeTab === 'security' && (
+                        <AdminSecurity />
                     )}
 
                 </main>

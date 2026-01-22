@@ -67,6 +67,26 @@ export default async function authRoutes(fastify, options) {
             return reply.code(400).send({ error: 'Email, password, and deviceId are required' });
         }
 
+        // 0. Verificar se o usuário está bloqueado ANTES de autenticar
+        const { data: userCheck } = await supabase.auth.admin.listUsers();
+        const existingUser = userCheck?.users?.find(u => u.email === email);
+
+        if (existingUser) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('is_blocked, blocked_reason')
+                .eq('id', existingUser.id)
+                .single();
+
+            if (profile?.is_blocked) {
+                return reply.code(403).send({
+                    error: 'Você foi bloqueado por acessar sua conta em vários dispositivos. Por favor, entre em contacto com a equipe técnica.',
+                    code: 'ACCOUNT_BLOCKED',
+                    blocked_reason: profile.blocked_reason
+                });
+            }
+        }
+
         // 1. Authenticate with Supabase Auth
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -93,6 +113,22 @@ export default async function authRoutes(fastify, options) {
         if (sessionError) {
             request.log.error('Session registration failed', sessionError);
             return reply.code(500).send({ error: 'Failed to register session' });
+        }
+
+        // 3. Registrar no histórico de dispositivos para detecção de múltiplos acessos
+        try {
+            await supabase
+                .from('device_login_history')
+                .insert({
+                    user_id: user.id,
+                    device_id: deviceId,
+                    ip_address: request.ip || request.headers['x-forwarded-for'] || 'unknown',
+                    user_agent: request.headers['user-agent'] || 'unknown',
+                    logged_in_at: new Date().toISOString()
+                });
+        } catch (historyError) {
+            // Não bloquear o login se falhar o registro do histórico
+            request.log.warn('Device history registration failed:', historyError);
         }
 
         return {

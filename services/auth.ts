@@ -110,6 +110,11 @@ export const authService = {
             if (!response.ok) {
                 const error = await response.json();
 
+                // Tratar erro de conta bloqueada por múltiplos dispositivos
+                if (error.code === 'ACCOUNT_BLOCKED') {
+                    throw new Error('Conta bloqueada por estar associada a vários dispositivos. Por favor, entre em contacto com a equipa técnica para ser desbloqueado.');
+                }
+
                 // Tratar erro de sessão noutro dispositivo
                 if (error.code === 'DEVICE_MISMATCH') {
                     throw new Error('A sua conta está em uso noutro dispositivo. Termine a sessão lá primeiro.');
