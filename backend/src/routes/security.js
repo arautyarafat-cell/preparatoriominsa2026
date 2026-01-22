@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabase.js';
 import { authenticate } from '../middleware/auth.js';
-import { authenticateAdmin } from '../middleware/adminAuth.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
+
+// Alias para manter compatibilidade com o código existente
+const authenticateAdmin = requireAdmin;
 
 export default async function securityRoutes(fastify, options) {
 
