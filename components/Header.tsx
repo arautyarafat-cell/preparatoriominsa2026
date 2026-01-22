@@ -154,6 +154,14 @@ export const Header: React.FC<HeaderProps> = ({
                                 >
                                     COMO FUNCIONA
                                 </button>
+                                {user && user.email === 'arautyarafat@gmail.com' && (
+                                    <button
+                                        onClick={() => { setShowMobileMenu(false); onEnterAdmin(); }}
+                                        className="text-amber-400 text-xs font-bold uppercase tracking-widest hover:text-amber-300 transition-colors border-b-2 border-amber-400/50 pb-2 whitespace-nowrap"
+                                    >
+                                        ADMIN
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -187,8 +195,8 @@ export const Header: React.FC<HeaderProps> = ({
                                             }}
                                             disabled={isUnavailable}
                                             className={`flex items-center gap-4 p-3 rounded-2xl border shadow-sm transition-all group ${isUnavailable
-                                                    ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed'
-                                                    : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-md'
+                                                ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed'
+                                                : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-md'
                                                 }`}
                                         >
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shrink-0 ${isUnavailable ? 'bg-slate-300 grayscale' : cat.color

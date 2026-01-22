@@ -122,7 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </h1>
 
             <p className="text-base lg:text-xl text-slate-500 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-              Escolha sua área de atuação e tenha acesso a materiais exclusivos, simulados inteligentes e jogos clínicos para dominar o concurso público.
+              Todo o material utilizado é de origem angolana e cuidadosamente selecionado, garantindo fiabilidade. Os questionários são elaborados com base em exames anteriores, e os demais conteúdos estão alinhados ao Sistema Nacional de Saúde
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">

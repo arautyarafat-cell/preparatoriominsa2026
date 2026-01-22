@@ -325,7 +325,7 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
                   {/* 1. Aulas Digitais - Modern Card Style */}
                   <div
                      onClick={() => handlePremiumAction(onEnterLesson)}
-                     className={`flex-1 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0088CC] to-[#006699] p-8 md:p-10 cursor-pointer shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-sky-900/30 hover:-translate-y-1 min-h-[380px] flex flex-col justify-between group ${!hasPremium ? 'ring-2 ring-amber-400/50' : ''}`}
+                     className={`flex-1 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0088CC] to-[#006699] p-6 md:p-10 cursor-pointer shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-sky-900/30 hover:-translate-y-1 min-h-[280px] md:min-h-[380px] flex flex-col justify-between group ${!hasPremium ? 'ring-2 ring-amber-400/50' : ''}`}
                   >
                      {/* Background Elements */}
                      <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-[60px] -mr-20 -mt-20 pointer-events-none"></div>
@@ -351,20 +351,20 @@ const CategoryHub: React.FC<CategoryHubProps> = ({
 
                      {/* Main Content */}
                      <div className="relative z-10 flex-1 flex flex-col justify-center">
-                        <h3 className="text-4xl md:text-[3.5rem] font-display font-bold text-white mb-6 leading-[0.95] tracking-tight">
+                        <h3 className="text-2xl md:text-[3.5rem] font-display font-bold text-white mb-3 md:mb-6 leading-[1.1] tracking-tight">
                            Aulas Digitais <br /> Interactivas
                         </h3>
-                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-sm font-medium">
+                        <p className="text-white/90 text-sm md:text-xl leading-relaxed max-w-sm font-medium">
                            Aprenda com slides inteligentes, áudio explicativo e aulas conversacionais.
                            Sistema completo com quiz integrado.
                         </p>
                      </div>
 
                      {/* Bottom Action */}
-                     <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-                        <span className="text-white/70 text-sm font-bold tracking-wide uppercase">Conteúdo Completo</span>
-                        <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white group-hover:bg-white group-hover:text-[#0088CC] transition-all transform group-hover:scale-110 shadow-lg border border-white/10">
-                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                     <div className="relative z-10 mt-4 md:mt-8 pt-4 md:pt-6 border-t border-white/10 flex items-center justify-between">
+                        <span className="text-white/70 text-xs md:text-sm font-bold tracking-wide uppercase">Conteúdo Completo</span>
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 flex items-center justify-center text-white group-hover:bg-white group-hover:text-[#0088CC] transition-all transform group-hover:scale-110 shadow-lg border border-white/10">
+                           <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </div>
                      </div>
                   </div>
