@@ -364,22 +364,208 @@ line {
     }
 }
 
-/* Mobile Adjustments */
-@media (max-width: 600px) {
+/* Mobile Adjustments - Responsivo Completo */
+@media (max-width: 768px) {
+    .connection-game-header {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-bottom-left-radius: 15px;
+        border-bottom-right-radius: 15px;
+    }
+
+    .header-left {
+        gap: 8px;
+    }
+
+    .level-badge {
+        font-size: 0.85rem;
+        padding: 4px 10px;
+    }
+
+    .score-display {
+        font-size: 1rem;
+    }
+
+    .audio-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .exit-btn {
+        font-size: 1.2rem;
+        margin-right: 8px;
+    }
+
+    #game-container {
+        width: 100%;
+        height: calc(100vh - 80px);
+        padding: 5px 8px;
+        gap: 10px;
+    }
+
+    .column {
+        width: 48%;
+        gap: 8px;
+    }
+
+    .card {
+        padding: 10px 8px;
+        min-height: 60px;
+        border-radius: 12px;
+    }
+
     .card-text {
-        font-size: 0.9rem;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        padding: 0 2px;
     }
 
     .connector {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
+        border-width: 3px;
     }
 
     .col-left .connector {
-        right: -10px;
+        right: -9px;
     }
 
     .col-right .connector {
-        left: -10px;
+        left: -9px;
+    }
+
+    .connection-modal {
+        padding: 25px 20px;
+        width: 90%;
+        max-width: 350px;
+        border-radius: 20px;
+    }
+
+    .connection-modal h2 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+
+    .connection-modal p {
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+    }
+
+    .connection-btn {
+        padding: 12px 25px;
+        font-size: 0.95rem;
+    }
+}
+
+/* Extra Small Mobile (< 400px) */
+@media (max-width: 400px) {
+    .connection-game-header {
+        padding: 8px 10px;
+        margin-bottom: 8px;
+    }
+
+    .header-left {
+        gap: 5px;
+    }
+
+    .level-badge {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+    }
+
+    .score-display {
+        font-size: 0.85rem;
+    }
+
+    .audio-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+
+    .exit-btn {
+        font-size: 1rem;
+        margin-right: 5px;
+    }
+
+    #game-container {
+        padding: 3px 5px;
+        gap: 6px;
+    }
+
+    .column {
+        width: 49%;
+        gap: 6px;
+    }
+
+    .card {
+        padding: 8px 5px;
+        min-height: 50px;
+        border-radius: 10px;
+    }
+
+    .card-text {
+        font-size: 0.65rem;
+        line-height: 1.15;
+        word-break: break-word;
+    }
+
+    .connector {
+        width: 14px;
+        height: 14px;
+        border-width: 2px;
+    }
+
+    .col-left .connector {
+        right: -7px;
+    }
+
+    .col-right .connector {
+        left: -7px;
+    }
+
+    line {
+        stroke-width: 3;
+    }
+
+    .connection-modal {
+        padding: 20px 15px;
+        border-radius: 16px;
+    }
+
+    .connection-modal h2 {
+        font-size: 1.2rem;
+    }
+
+    .connection-modal p {
+        font-size: 0.85rem;
+        margin-bottom: 15px;
+    }
+
+    .connection-btn {
+        padding: 10px 20px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Landscape Mobile - evitar scroll */
+@media (max-height: 500px) and (orientation: landscape) {
+    .connection-game-header {
+        padding: 5px 15px;
+        margin-bottom: 5px;
+    }
+
+    #game-container {
+        height: calc(100vh - 50px);
+    }
+
+    .card {
+        min-height: 45px;
+        padding: 6px;
+    }
+
+    .card-text {
+        font-size: 0.7rem;
     }
 }
