@@ -159,6 +159,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const [aiContentBase, setAiContentBase] = useState(''); // Conteúdo base para a IA gerar aula
     const [aiGenerationMode, setAiGenerationMode] = useState<'topic' | 'content' | 'import'>('topic');
     const csvImportRef = useRef<HTMLInputElement>(null);
+    const [csvPasteText, setCsvPasteText] = useState(''); // CSV colado manualmente
 
     // Estado dos dados completos gerados pela IA
     const [aulaConversacional, setAulaConversacional] = useState<ConversationalLesson | null>(null);
@@ -1144,8 +1145,8 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                         <button
                             onClick={() => setAiGenerationMode('topic')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'topic'
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-white text-purple-700 hover:bg-purple-100'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-white text-purple-700 hover:bg-purple-100'
                                 }`}
                         >
                             Por Tema
@@ -1153,8 +1154,8 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                         <button
                             onClick={() => setAiGenerationMode('content')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'content'
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-white text-purple-700 hover:bg-purple-100'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-white text-purple-700 hover:bg-purple-100'
                                 }`}
                         >
                             Com Conteudo
@@ -1162,8 +1163,8 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                         <button
                             onClick={() => setAiGenerationMode('import')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'import'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-white text-green-700 hover:bg-green-100'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white text-green-700 hover:bg-green-100'
                                 }`}
                         >
                             Importar CSV
@@ -1259,7 +1260,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                     {aiGenerationMode === 'import' && (
                         <div className="space-y-4">
                             <p className="text-sm text-green-700">
-                                Importe uma aula ja estruturada em formato CSV. O sistema aceita slides, quiz e flashcards.
+                                Importe uma aula já estruturada em formato CSV. O sistema aceita slides, quiz e flashcards.
                             </p>
 
                             <div className="bg-white rounded-xl p-4 border border-green-200">
@@ -1286,32 +1287,149 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                <input
-                                    ref={csvImportRef}
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={handleImportCSV}
-                                    className="hidden"
-                                    id="csv-import-input"
-                                />
-                                <label
-                                    htmlFor="csv-import-input"
-                                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* Opção 1: Upload de Arquivo */}
+                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                                <h5 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
-                                    Selecionar Arquivo CSV
-                                </label>
-                                <span className="text-sm text-slate-500">
-                                    Formato: .csv (separador: virgula ou ponto e virgula)
-                                </span>
+                                    Opção 1: Selecionar Arquivo
+                                </h5>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        ref={csvImportRef}
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleImportCSV}
+                                        className="hidden"
+                                        id="csv-import-input"
+                                    />
+                                    <label
+                                        htmlFor="csv-import-input"
+                                        className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        Selecionar Arquivo CSV
+                                    </label>
+                                    <span className="text-sm text-slate-500">
+                                        Formato: .csv (separador: vírgula ou ponto e vírgula)
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Separador */}
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1 h-px bg-slate-200"></div>
+                                <span className="text-sm font-medium text-slate-400">OU</span>
+                                <div className="flex-1 h-px bg-slate-200"></div>
+                            </div>
+
+                            {/* Opção 2: Colar CSV */}
+                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                                <h5 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    Opção 2: Colar Conteúdo CSV
+                                </h5>
+                                <textarea
+                                    value={csvPasteText}
+                                    onChange={(e) => setCsvPasteText(e.target.value)}
+                                    className="w-full h-40 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none font-mono text-sm"
+                                    placeholder="Cole aqui o conteúdo CSV...&#10;&#10;Exemplo para Slides:&#10;titulo;conteudo;audioscript;relevancia&#10;Introdução à Malária;A malária é uma doença...;Este slide apresenta...;alta&#10;&#10;Exemplo para Quiz:&#10;enunciado;a;b;c;d;correta;explicacao&#10;O que é malária?;Vírus;Bactéria;Parasita;Fungo;C;Causada pelo Plasmodium"
+                                />
+                                <div className="flex items-center justify-between mt-3">
+                                    <span className="text-xs text-slate-500">
+                                        {csvPasteText.split('\n').filter(l => l.trim()).length} linhas detectadas
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setCsvPasteText('')}
+                                            disabled={!csvPasteText.trim()}
+                                            className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Limpar
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (!csvPasteText.trim()) {
+                                                    alert('Por favor, cole o conteúdo CSV primeiro.');
+                                                    return;
+                                                }
+                                                const parsed = parseCSVToLesson(csvPasteText);
+                                                if (!parsed) {
+                                                    alert('Erro ao interpretar o CSV. Verifique o formato.');
+                                                    return;
+                                                }
+                                                const { slides: importedSlides, quiz: importedQuiz, flashcards: importedFlashcards } = parsed;
+                                                if (importedSlides.length === 0 && importedQuiz.length === 0 && importedFlashcards.length === 0) {
+                                                    alert('Nenhum dado válido encontrado no CSV. Verifique o formato.');
+                                                    return;
+                                                }
+                                                const shouldReplace = slides.length > 0 || (miniQuiz?.questoes?.length || 0) > 0 || flashcards.length > 0;
+                                                if (shouldReplace) {
+                                                    const confirmReplace = confirm(
+                                                        `O CSV contém:\n- ${importedSlides.length} slides\n- ${importedQuiz.length} questões\n- ${importedFlashcards.length} flashcards\n\nDeseja SUBSTITUIR os dados atuais?\nOK = Substituir, Cancelar = Adicionar`
+                                                    );
+                                                    if (confirmReplace) {
+                                                        if (importedSlides.length > 0) setSlides(importedSlides);
+                                                        if (importedQuiz.length > 0) {
+                                                            setMiniQuiz({
+                                                                titulo: 'Quiz da Aula',
+                                                                descricao: 'Teste seus conhecimentos',
+                                                                questoes: importedQuiz,
+                                                                pontuacaoMinima: 60
+                                                            });
+                                                        }
+                                                        if (importedFlashcards.length > 0) setFlashcards(importedFlashcards);
+                                                    } else {
+                                                        if (importedSlides.length > 0) {
+                                                            setSlides(prev => [...prev, ...importedSlides.map((s, i) => ({ ...s, ordem: prev.length + i + 1 }))]);
+                                                        }
+                                                        if (importedQuiz.length > 0) {
+                                                            setMiniQuiz(prev => ({
+                                                                titulo: prev?.titulo || 'Quiz da Aula',
+                                                                descricao: prev?.descricao || 'Teste seus conhecimentos',
+                                                                questoes: [...(prev?.questoes || []), ...importedQuiz],
+                                                                pontuacaoMinima: prev?.pontuacaoMinima || 60
+                                                            }));
+                                                        }
+                                                        if (importedFlashcards.length > 0) {
+                                                            setFlashcards(prev => [...prev, ...importedFlashcards]);
+                                                        }
+                                                    }
+                                                } else {
+                                                    if (importedSlides.length > 0) setSlides(importedSlides);
+                                                    if (importedQuiz.length > 0) {
+                                                        setMiniQuiz({
+                                                            titulo: 'Quiz da Aula',
+                                                            descricao: 'Teste seus conhecimentos',
+                                                            questoes: importedQuiz,
+                                                            pontuacaoMinima: 60
+                                                        });
+                                                    }
+                                                    if (importedFlashcards.length > 0) setFlashcards(importedFlashcards);
+                                                }
+                                                alert(`Importação concluída!\n${importedSlides.length} slides\n${importedQuiz.length} questões\n${importedFlashcards.length} flashcards`);
+                                                setCsvPasteText('');
+                                            }}
+                                            disabled={!csvPasteText.trim()}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            </svg>
+                                            Importar CSV Colado
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600">
-                                <strong>Dica:</strong> Voce pode criar o CSV no Excel/Google Sheets e exportar como CSV.
-                                O sistema detecta automaticamente se o arquivo contem slides, quiz ou flashcards.
+                                <strong>Dica:</strong> Você pode criar o CSV no Excel/Google Sheets e exportar como CSV, ou copiar diretamente de uma planilha.
+                                O sistema detecta automaticamente se o conteúdo contém slides, quiz ou flashcards.
                             </div>
                         </div>
                     )}
