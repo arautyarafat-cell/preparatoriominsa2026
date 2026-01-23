@@ -684,24 +684,24 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
         }
 
         return (
-            <div className="h-full overflow-y-auto p-6">
+            <div className="h-full overflow-y-auto p-4 sm:p-6 pb-28 sm:pb-32">
                 <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-10">
-                        <h2 className="text-2xl font-display font-bold text-slate-900">{miniQuiz.titulo}</h2>
-                        <p className="text-slate-500 mt-2">{miniQuiz.descricao}</p>
+                    <div className="text-center mb-6 sm:mb-10">
+                        <h2 className="text-xl sm:text-2xl font-display font-bold text-slate-900">{miniQuiz.titulo}</h2>
+                        <p className="text-sm sm:text-base text-slate-500 mt-2">{miniQuiz.descricao}</p>
                     </div>
 
-                    <div className="space-y-8">
+                    <div className="space-y-4 sm:space-y-8">
                         {questoes.map((questao, qIdx) => (
-                            <div key={questao.id} className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 md:p-8">
-                                <div className="flex items-start gap-4 mb-6">
-                                    <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold flex-shrink-0">
+                            <div key={questao.id} className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-lg p-4 sm:p-6 md:p-8">
+                                <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+                                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold flex-shrink-0 text-sm sm:text-base">
                                         {qIdx + 1}
                                     </span>
-                                    <p className="text-lg font-medium text-slate-900">{questao.enunciado}</p>
+                                    <p className="text-base sm:text-lg font-medium text-slate-900">{questao.enunciado}</p>
                                 </div>
 
-                                <div className="space-y-3 ml-12">
+                                <div className="space-y-2 sm:space-y-3 ml-0 sm:ml-12">
                                     {questao.alternativas.map((alt) => {
                                         const isSelected = quizAnswers[questao.id] === alt.letra;
 
@@ -709,19 +709,19 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                                             <button
                                                 key={alt.letra}
                                                 onClick={() => handleQuizAnswer(questao.id, alt.letra)}
-                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
+                                                className={`w-full text-left p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all ${isSelected
                                                     ? 'border-brand-500 bg-brand-50 text-brand-700'
                                                     : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                                     }`}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-bold ${isSelected
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${isSelected
                                                         ? 'border-brand-500 bg-brand-500 text-white'
                                                         : 'border-slate-300 text-slate-400'
                                                         }`}>
                                                         {alt.letra}
                                                     </span>
-                                                    <span className={isSelected ? 'font-medium' : ''}>{alt.texto}</span>
+                                                    <span className={`text-sm sm:text-base ${isSelected ? 'font-medium' : ''}`}>{alt.texto}</span>
                                                 </div>
                                             </button>
                                         );
@@ -731,11 +731,12 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                         ))}
                     </div>
 
-                    <div className="mt-10 flex justify-center">
+                    {/* Botão Submeter - Fixo no mobile para garantir visibilidade */}
+                    <div className="mt-6 sm:mt-10 pb-4">
                         <button
                             onClick={handleSubmitQuiz}
                             disabled={Object.keys(quizAnswers).length !== questoes.length}
-                            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold text-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl"
+                            className="w-full sm:w-auto mx-auto block px-8 sm:px-10 py-3 sm:py-4 bg-slate-900 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl"
                         >
                             Submeter Respostas
                         </button>
@@ -772,14 +773,14 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
         const isMastered = masteredCards.includes(currentCard.id);
 
         return (
-            <div className="h-full flex flex-col items-center justify-center p-6">
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 pb-24 sm:pb-6">
                 <div className="w-full max-w-lg">
                     {/* Progress */}
-                    <div className="flex items-center justify-between mb-6">
-                        <span className="text-sm text-slate-500">
+                    <div className="flex items-center justify-between mb-4 sm:mb-6">
+                        <span className="text-xs sm:text-sm text-slate-500">
                             Card {currentFlashcardIndex + 1} de {flashcards.length}
                         </span>
-                        <span className="text-sm text-green-600 font-medium">
+                        <span className="text-xs sm:text-sm text-green-600 font-medium">
                             {masteredCards.length} dominados
                         </span>
                     </div>
@@ -787,40 +788,40 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                     {/* Card */}
                     <div
                         onClick={handleFlipCard}
-                        className={`w-full h-80 rounded-3xl shadow-2xl cursor-pointer transition-all duration-500 transform perspective-1000 ${isFlashcardFlipped ? 'rotate-y-180' : ''
+                        className={`w-full h-56 sm:h-72 md:h-80 rounded-2xl sm:rounded-3xl shadow-2xl cursor-pointer transition-all duration-500 transform perspective-1000 ${isFlashcardFlipped ? 'rotate-y-180' : ''
                             }`}
                         style={{ transformStyle: 'preserve-3d' }}
                     >
-                        <div className={`w-full h-full rounded-3xl p-8 flex items-center justify-center ${isFlashcardFlipped
+                        <div className={`w-full h-full rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex items-center justify-center ${isFlashcardFlipped
                             ? 'bg-gradient-to-br from-green-500 to-green-600 text-white'
                             : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'
                             }`}>
                             <div className="text-center">
                                 {!isFlashcardFlipped ? (
                                     <>
-                                        <span className="text-slate-400 text-sm uppercase tracking-wide block mb-4">Pergunta</span>
-                                        <p className="text-xl md:text-2xl font-medium">{currentCard.frente}</p>
+                                        <span className="text-slate-400 text-xs sm:text-sm uppercase tracking-wide block mb-3 sm:mb-4">Pergunta</span>
+                                        <p className="text-lg sm:text-xl md:text-2xl font-medium">{currentCard.frente}</p>
                                     </>
                                 ) : (
                                     <>
-                                        <span className="text-green-200 text-sm uppercase tracking-wide block mb-4">Resposta</span>
-                                        <p className="text-xl md:text-2xl font-medium">{currentCard.verso}</p>
+                                        <span className="text-green-200 text-xs sm:text-sm uppercase tracking-wide block mb-3 sm:mb-4">Resposta</span>
+                                        <p className="text-lg sm:text-xl md:text-2xl font-medium">{currentCard.verso}</p>
                                     </>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    <p className="text-center text-slate-400 text-sm mt-4">
+                    <p className="text-center text-slate-400 text-xs sm:text-sm mt-3 sm:mt-4">
                         Clica no card para virar
                     </p>
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-between mt-8">
+                    {/* Actions - Responsivo */}
+                    <div className="flex items-center justify-between gap-2 sm:gap-4 mt-6 sm:mt-8">
                         <button
                             onClick={handlePrevCard}
                             disabled={currentFlashcardIndex === 0}
-                            className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 sm:flex-none px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-slate-200 text-slate-600 font-bold text-sm sm:text-base hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                         >
                             Anterior
                         </button>
@@ -828,20 +829,21 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                         <button
                             onClick={() => handleMasterCard(currentCard.id)}
                             disabled={isMastered}
-                            className={`px-6 py-3 rounded-xl font-bold transition-all ${isMastered
+                            className={`flex-1 sm:flex-none px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-base transition-all ${isMastered
                                 ? 'bg-green-100 text-green-600 cursor-not-allowed'
                                 : 'bg-green-600 text-white hover:bg-green-700 shadow-lg'
                                 }`}
                         >
-                            {isMastered ? 'Dominado' : 'Marcar como Dominado'}
+                            <span className="hidden sm:inline">{isMastered ? 'Dominado' : 'Marcar como'}</span>
+                            <span className="sm:hidden">{isMastered ? '✓' : 'Marcar'}</span>
                         </button>
 
                         <button
                             onClick={handleNextCard}
                             disabled={currentFlashcardIndex === flashcards.length - 1}
-                            className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 sm:flex-none px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-slate-900 text-white font-bold text-sm sm:text-base hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                         >
-                            Proximo
+                            Próximo
                         </button>
                     </div>
                 </div>

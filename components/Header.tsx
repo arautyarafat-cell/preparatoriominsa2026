@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CATEGORIES } from '../constants';
 import { Category } from '../types';
 import { Icon } from './icons';
+import { API_URL } from '../config/api';
 
 export interface HeaderProps {
     user?: any;
@@ -27,6 +28,21 @@ export const Header: React.FC<HeaderProps> = ({
     onGoHome
 }) => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
+
+    // Fetch blocked categories from server
+    useEffect(() => {
+        const fetchBlocked = async () => {
+            try {
+                const res = await fetch(`${API_URL}/blocking/categories`);
+                const data = await res.json();
+                setBlockedCategories(data.blockedCategories || []);
+            } catch (e) {
+                console.error('Failed to fetch blocked categories:', e);
+            }
+        };
+        fetchBlocked();
+    }, []);
 
     return (
         <>
@@ -181,37 +197,38 @@ export const Header: React.FC<HeaderProps> = ({
                                         user?.email?.toLowerCase() === 'arautyarafat@gmail.com' ||
                                         user?.email?.toLowerCase() === 'admin@angolasaude.ao';
 
-                                    // Categoria não disponível para não-admins
-                                    const isUnavailable = cat.disponivel === false && !isAdmin;
+                                    // Categoria bloqueada: APENAS se estiver na lista de blockedCategories
+                                    // O sistema de admin sobrescreve a propriedade 'disponivel' do código
+                                    const isBlocked = blockedCategories.includes(cat.id) && !isAdmin;
 
                                     return (
                                         <button
                                             key={cat.id}
                                             onClick={() => {
-                                                if (!isUnavailable) {
+                                                if (!isBlocked) {
                                                     onSelectCategory(cat);
                                                     setShowMobileMenu(false);
                                                 }
                                             }}
-                                            disabled={isUnavailable}
-                                            className={`flex items-center gap-4 p-3 rounded-2xl border shadow-sm transition-all group ${isUnavailable
+                                            disabled={isBlocked}
+                                            className={`flex items-center gap-4 p-3 rounded-2xl border shadow-sm transition-all group ${isBlocked
                                                 ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed'
                                                 : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-md'
                                                 }`}
                                         >
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shrink-0 ${isUnavailable ? 'bg-slate-300 grayscale' : cat.color
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shrink-0 ${isBlocked ? 'bg-slate-300 grayscale' : cat.color
                                                 }`}>
-                                                {isUnavailable ? '🔒' : cat.icon}
+                                                {isBlocked ? '🔒' : cat.icon}
                                             </div>
                                             <div className="flex-1 text-left">
-                                                <div className={`font-bold text-base ${isUnavailable ? 'text-slate-500' : 'text-slate-900'}`}>
+                                                <div className={`font-bold text-base ${isBlocked ? 'text-slate-500' : 'text-slate-900'}`}>
                                                     {cat.title}
                                                 </div>
                                                 <div className="text-[10px] font-bold text-slate-400">
-                                                    {isUnavailable ? 'Em Breve' : `${cat.totalQuestions} questões`}
+                                                    {isBlocked ? 'Indisponível' : `${cat.totalQuestions} questões`}
                                                 </div>
                                             </div>
-                                            {!isUnavailable && (
+                                            {!isBlocked && (
                                                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-slate-500 transition-colors">
                                                     <Icon name="chevron-right" size="sm" />
                                                 </div>

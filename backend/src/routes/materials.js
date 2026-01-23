@@ -55,7 +55,7 @@ export default async function materialRoutes(fastify, options) {
             if (category_id) category_id = await getCategoryId(category_id);
 
             const { data, error } = await supabase
-                .from('materials')
+                .from('supplementary_materials')
                 .insert({
                     title,
                     category_id,
@@ -86,7 +86,7 @@ export default async function materialRoutes(fastify, options) {
             }
 
             const { data, error } = await supabase
-                .from('materials')
+                .from('supplementary_materials')
                 .select('*')
                 .eq('category_id', resolvedId)
                 .order('created_at', { ascending: false });
@@ -108,7 +108,7 @@ export default async function materialRoutes(fastify, options) {
             }
 
             const { data, error } = await supabase
-                .from('materials')
+                .from('supplementary_materials')
                 .select('*')
                 .in('id', ids)
                 .order('created_at', { ascending: false });
@@ -125,7 +125,7 @@ export default async function materialRoutes(fastify, options) {
     fastify.get('/materials', async (request, reply) => {
         const { category_id } = request.query;
         try {
-            let query = supabase.from('materials').select('*').order('created_at', { ascending: false });
+            let query = supabase.from('supplementary_materials').select('*').order('created_at', { ascending: false });
 
             if (category_id) {
                 const resolvedId = await getCategoryId(category_id);
@@ -148,7 +148,7 @@ export default async function materialRoutes(fastify, options) {
         try {
             // Get file path first
             const { data: item, error: fetchError } = await supabase
-                .from('materials')
+                .from('supplementary_materials')
                 .select('file_path')
                 .eq('id', id)
                 .single();
@@ -157,7 +157,7 @@ export default async function materialRoutes(fastify, options) {
 
             // Delete from DB
             const { error: deleteError } = await supabase
-                .from('materials')
+                .from('supplementary_materials')
                 .delete()
                 .eq('id', id);
 

@@ -1,5 +1,6 @@
 {
   "blockedCategories": [
+    "MEDICO",
     "ENFERMAGEM",
     "TEC_FARMACIA",
     "ANALISES_CLINICAS"

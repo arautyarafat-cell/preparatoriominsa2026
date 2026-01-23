@@ -106,7 +106,6 @@ export const AdminTrilhas: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {CATEGORIES.map((category) => {
                     const isBlocked = blockedCategories.includes(category.id);
-                    const isBuiltInUnavailable = category.disponivel === false;
                     const isUpdatingThis = updating === category.id;
 
                     return (
@@ -134,12 +133,7 @@ export const AdminTrilhas: React.FC = () => {
                                         {isBlocked ? (
                                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                                Bloqueada (Indisponível)
-                                            </span>
-                                        ) : isBuiltInUnavailable ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                Em Breve (código)
+                                                Bloqueada (Indisponível para usuários)
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
