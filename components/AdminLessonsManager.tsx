@@ -90,7 +90,6 @@ interface Lesson {
     id: string;
     titulo: string;
     area: string;
-    nivel: string;
     categoria?: string;
     slides: Slide[];
     aulaConversacional?: ConversationalLesson;
@@ -132,7 +131,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const [formData, setFormData] = useState({
         titulo: '',
         area: '',
-        nivel: 'intermedio',
         categoria: ''
     });
 
@@ -291,7 +289,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
         setFormData({
             titulo: '',
             area: 'TEC_ENFERMAGEM',
-            nivel: 'intermedio',
             categoria: ''
         });
         setSlides([]);
@@ -327,7 +324,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
             const lessonData = {
                 titulo: formData.titulo,
                 area: formData.area,
-                nivel: formData.nivel,
                 categoria: formData.categoria,
                 slides: slides,
                 // Dados adicionais gerados pela IA
@@ -380,7 +376,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
         setFormData({
             titulo: lesson.titulo,
             area: lesson.area,
-            nivel: lesson.nivel,
             categoria: lesson.categoria || ''
         });
         setSlides(lesson.slides || []);
@@ -406,7 +401,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
         setIsCreating(false);
         setIsEditing(false);
         setSelectedLesson(null);
-        setFormData({ titulo: '', area: '', nivel: 'intermedio', categoria: '' });
+        setFormData({ titulo: '', area: '', categoria: '' });
         setSlides([]);
         // Limpar dados adicionais
         setAulaConversacional(null);
@@ -599,8 +594,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                 },
                 body: JSON.stringify({
                     tema: aiTopic,
-                    area: formData.area,
-                    nivel: formData.nivel
+                    area: formData.area
                 })
             });
 
@@ -613,7 +607,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                     setFormData({
                         titulo: lesson.titulo,
                         area: lesson.area,
-                        nivel: lesson.nivel,
                         categoria: formData.categoria
                     });
                     setSlides(lesson.slides || []);
@@ -708,7 +701,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                 body: JSON.stringify({
                     tema: aiTopic,
                     area: formData.area,
-                    nivel: formData.nivel,
                     conteudoBase: aiContentBase
                 })
             });
@@ -721,7 +713,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                     setFormData({
                         titulo: lesson.titulo,
                         area: lesson.area,
-                        nivel: lesson.nivel,
                         categoria: formData.categoria
                     });
                     setSlides(lesson.slides || []);
@@ -1009,9 +1000,6 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                                             <span className="px-2 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold">
                                                 {lesson.area}
                                             </span>
-                                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
-                                                {lesson.nivel}
-                                            </span>
                                         </div>
                                         <p className="text-slate-500 text-sm">
                                             {lesson.slides?.length || 0} slides
@@ -1104,18 +1092,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                             <option value="ANALISES_CLINICAS">Analises Clinicas</option>
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nivel</label>
-                        <select
-                            value={formData.nivel}
-                            onChange={e => setFormData(prev => ({ ...prev, nivel: e.target.value }))}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500"
-                        >
-                            <option value="basico">Basico</option>
-                            <option value="intermedio">Intermedio</option>
-                            <option value="avancado">Avancado</option>
-                        </select>
-                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
                         <select
@@ -1211,23 +1188,28 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                     {/* Modo: Gerar com Conteudo */}
                     {aiGenerationMode === 'content' && (
                         <div className="space-y-3">
-                            <p className="text-sm text-purple-700">
-                                Cole o conteudo (texto ou CSV) e a IA cria uma aula estruturada baseada nesse material.
-                            </p>
+                            <div className="p-3 bg-green-50 rounded-xl border border-green-200">
+                                <p className="text-sm text-green-800 font-medium">
+                                    📚 Cole o conteúdo e a IA criará uma aula COMPLETA usando TODO o material fornecido.
+                                </p>
+                                <p className="text-xs text-green-700 mt-1">
+                                    A IA NÃO irá resumir, excluir ou diminuir o conteúdo. Todas as informações, conceitos e detalhes serão incluídos na aula.
+                                </p>
+                            </div>
                             <div className="flex gap-3">
                                 <input
                                     type="text"
                                     value={aiTopic}
                                     onChange={e => setAiTopic(e.target.value)}
                                     className="flex-1 px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500"
-                                    placeholder="Titulo da aula (obrigatorio)"
+                                    placeholder="Título da aula (obrigatório)"
                                 />
                             </div>
                             <textarea
                                 value={aiContentBase}
                                 onChange={e => setAiContentBase(e.target.value)}
                                 className="w-full h-48 px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 resize-none text-sm"
-                                placeholder="Cole aqui o conteudo que deseja usar como base para a aula: texto corrido, topicos, conteudo de livros/apostilas, ou dados em formato CSV. A IA ira analisar e criar slides, scripts de audio, blocos conversacionais, quiz e flashcards."
+                                placeholder="Cole aqui TODO o conteúdo que deseja transformar em aula. A IA usará CADA informação, conceito, definição e detalhe do material para criar slides, áudio scripts, blocos conversacionais, quiz e flashcards. Nada será omitido ou resumido!"
                             />
                             <div className="flex items-center justify-between">
                                 <span className="text-xs text-purple-600">
@@ -1248,7 +1230,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
-                                            Gerar com Conteudo
+                                            Gerar Aula Completa
                                         </>
                                     )}
                                 </button>

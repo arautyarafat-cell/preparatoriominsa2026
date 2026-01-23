@@ -180,7 +180,7 @@ export default async function lessonRoutes(fastify, options) {
     fastify.post('/lessons', async (request, reply) => {
         try {
             const {
-                titulo, area, nivel, categoria, slides,
+                titulo, area, categoria, slides,
                 aulaConversacional, miniQuiz, flashcards,
                 objectivoGeral, objectivosEspecificos, preRequisitos,
                 duracaoEstimadaMinutos, versao, autor, tags, integracaoJogos,
@@ -195,7 +195,6 @@ export default async function lessonRoutes(fastify, options) {
                 id: `lesson-${Date.now()}`,
                 titulo,
                 area: area || 'TEC_ENFERMAGEM',
-                nivel: nivel || 'intermedio',
                 categoria: categoria || null,
                 slides: slides || [],
                 aula_conversacional: aulaConversacional || null,
@@ -236,7 +235,7 @@ export default async function lessonRoutes(fastify, options) {
         try {
             const { id } = request.params;
             const {
-                titulo, area, nivel, categoria, slides,
+                titulo, area, categoria, slides,
                 aulaConversacional, miniQuiz, flashcards,
                 objectivoGeral, objectivosEspecificos, preRequisitos,
                 duracaoEstimadaMinutos, versao, autor, tags,
@@ -246,7 +245,6 @@ export default async function lessonRoutes(fastify, options) {
             const updateData = {
                 titulo,
                 area,
-                nivel,
                 categoria,
                 slides,
                 aula_conversacional: aulaConversacional,
@@ -313,7 +311,7 @@ export default async function lessonRoutes(fastify, options) {
 
     fastify.post('/generate/lesson-slides', async (request, reply) => {
         try {
-            const { tema, area, nivel, conteudoBase } = request.body;
+            const { tema, area, conteudoBase } = request.body;
 
             if (!tema || !area) {
                 return reply.status(400).send({ error: 'Tema e area sao obrigatorios' });
@@ -321,21 +319,32 @@ export default async function lessonRoutes(fastify, options) {
 
             const areaProfile = AREA_PROFILES[area] || AREA_PROFILES.TEC_ENFERMAGEM;
 
+            // Definir instrucoes diferentes dependendo se ha conteudo base
+            const conteudoInstrucoes = conteudoBase ? `
+CONTEUDO FORNECIDO PELO USUARIO (OBRIGATORIO USAR NA INTEGRA):
+${conteudoBase}
+
+REGRA CRITICA - OBRIGATORIO SEGUIR:
+- VOCE DEVE USAR TODO O CONTEUDO ACIMA SEM EXCLUIR, RESUMIR OU DIMINUIR NADA
+- Cada informacao, conceito, definicao e detalhe fornecido DEVE aparecer na aula
+- NAO omita nenhuma parte do material fornecido pelo usuario
+- Crie tantos slides quantos forem necessarios para cobrir TODO o conteudo
+- NAO resuma nem simplifique - use o conteudo completo
+` : '';
+
             const prompt = `
 ${PROFESSOR_PROMPT}
 
 TAREFA: Gerar slides para uma aula digital sobre "${tema}"
 
 AREA PROFISSIONAL: ${areaProfile.nome}
-NIVEL: ${nivel || 'intermedio'}
 FOCO: ${areaProfile.foco}
-
-${conteudoBase ? `CONTEUDO DE REFERENCIA:\n${conteudoBase.substring(0, 3000)}\n` : ''}
+${conteudoInstrucoes}
 
 INSTRUCOES:
-- Gerar entre 6 e 10 slides
+${conteudoBase ? '- Criar o numero de slides NECESSARIO para cobrir TODO o conteudo fornecido (pode ser mais de 10 slides)' : '- Gerar entre 6 e 10 slides'}
 - Um conceito por slide
-- Maximo 150 palavras por slide
+- ${conteudoBase ? 'Incluir TODAS as informacoes do conteudo fornecido' : 'Maximo 150 palavras por slide'}
 - Incluir 2-4 pontos-chave por slide
 - Audio script que NAO repete o texto (explica de forma diferente)
 - Duracao audio: 60-120 segundos por slide
@@ -640,7 +649,7 @@ Responde como professor, sem mencionar que es IA.
 
     fastify.post('/generate/lesson-full', async (request, reply) => {
         try {
-            const { tema, area, nivel, objectivos, preRequisitos, conteudoBase } = request.body;
+            const { tema, area, objectivos, preRequisitos, conteudoBase } = request.body;
 
             if (!tema || !area) {
                 return reply.status(400).send({ error: 'Tema e area sao obrigatorios' });
@@ -648,22 +657,46 @@ Responde como professor, sem mencionar que es IA.
 
             const areaProfile = AREA_PROFILES[area] || AREA_PROFILES.TEC_ENFERMAGEM;
 
+            // Definir instrucoes diferentes dependendo se ha conteudo base
+            const conteudoInstrucoes = conteudoBase ? `
+CONTEUDO FORNECIDO PELO USUARIO (OBRIGATORIO USAR NA INTEGRA):
+${conteudoBase}
+
+================ REGRA CRITICA - OBRIGATORIO SEGUIR ================
+VOCE DEVE USAR TODO O CONTEUDO ACIMA SEM EXCLUIR, RESUMIR OU DIMINUIR NADA!
+
+1. CADA informacao, conceito, definicao, exemplo e detalhe fornecido DEVE aparecer na aula
+2. NAO omita NENHUMA parte do material fornecido pelo usuario
+3. Crie TANTOS slides, blocos e flashcards quantos forem NECESSARIOS para cobrir TODO o conteudo
+4. NAO resuma, NAO simplifique, NAO corte - use o conteudo COMPLETO e INTEGRAL
+5. Se o conteudo for extenso, crie mais slides (10, 15, 20 ou mais se necessario)
+6. Cada topico/secao do material deve ter seu proprio slide
+7. Os flashcards devem cobrir TODOS os conceitos do material
+8. O quiz deve testar pontos de TODO o conteudo fornecido
+====================================================================
+` : '';
+
             const prompt = `
 ${PROFESSOR_PROMPT}
 
 TAREFA: Gerar aula digital COMPLETA sobre "${tema}"
 
 AREA: ${areaProfile.nome}
-NIVEL: ${nivel || 'intermedio'}
 OBJECTIVOS: ${objectivos?.join(', ') || 'Dominar os conceitos fundamentais'}
-
-${conteudoBase ? `CONTEUDO DE REFERENCIA:\n${conteudoBase.substring(0, 5000)}\n` : ''}
+${conteudoInstrucoes}
 
 ESTRUTURA A GERAR:
+${conteudoBase ? `
+1. TODOS os slides necessarios para cobrir TODO o conteudo (minimo 6, sem limite maximo)
+2. Blocos conversacionais para CADA conceito do material (minimo 8)
+3. Questoes de quiz cobrindo TODOS os topicos (minimo 3, mais se o conteudo for extenso)
+4. Flashcards para CADA termo/conceito importante do material (minimo 8)
+` : `
 1. 6-10 slides com audio scripts
 2. 8-12 blocos conversacionais
 3. 3 questoes de quiz
 4. 8-10 flashcards
+`}
 
 FORMATO DE SAIDA (JSON OBJECT):
 {
@@ -711,6 +744,7 @@ FORMATO DE SAIDA (JSON OBJECT):
   ]
 }
 
+${conteudoBase ? 'LEMBRE-SE: Use TODO o conteudo fornecido! NAO resuma nem exclua nada!' : ''}
 Retorna APENAS o JSON object.
 `;
 
@@ -729,7 +763,6 @@ Retorna APENAS o JSON object.
                 id: lessonId,
                 titulo: aulaData.titulo || tema,
                 area: area,
-                nivel: nivel || 'intermedio',
                 versao: '1.0.0',
                 dataAtualizacao: new Date().toISOString().split('T')[0],
                 autor: 'Sistema Angola Saude 2026',
