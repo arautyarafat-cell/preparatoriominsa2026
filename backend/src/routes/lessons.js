@@ -806,7 +806,7 @@ Retorna APENAS o JSON object.
                 },
                 duracaoEstimadaMinutos: Math.ceil((aulaData.slides?.length || 6) * 3),
                 numeroConceitos: aulaData.slides?.length || 6,
-                tags: [tema.toLowerCase(), area, nivel || 'intermedio']
+                tags: [tema.toLowerCase(), area]
             };
 
             return { success: true, data: lesson };
