@@ -222,6 +222,27 @@ export const AdminPaymentSettings: React.FC = () => {
         }
     };
 
+    const handleDeleteProof = async (id: string, userEmail: string) => {
+        if (!confirm(`Tem certeza que deseja APAGAR permanentemente o comprovativo de ${userEmail}? Esta ação não pode ser desfeita.`)) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/payments/proof/${id}`, {
+                method: 'DELETE',
+                headers: authService.getAuthHeaders()
+            });
+            if (response.ok) {
+                setProofs(proofs.filter(p => p.id !== id));
+                alert('Comprovativo apagado com sucesso.');
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Erro ao apagar. Tente novamente.');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Erro de conexão.');
+        }
+    };
+
     const handleDetailChange = (key: string, value: string) => {
         if (!editForm) return;
         setEditForm({
@@ -495,6 +516,14 @@ export const AdminPaymentSettings: React.FC = () => {
                                                             ✕ Rejeitar
                                                         </button>
                                                     )}
+
+                                                    <button
+                                                        onClick={() => handleDeleteProof(proof.id, proof.user_email)}
+                                                        className="text-slate-500 hover:text-red-600 font-bold text-xs bg-slate-100 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                                                        title="Apagar comprovativo permanentemente"
+                                                    >
+                                                        🗑️ Apagar
+                                                    </button>
                                                 </>
                                             )}
                                         </div>

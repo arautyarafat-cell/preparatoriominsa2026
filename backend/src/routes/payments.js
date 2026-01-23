@@ -347,6 +347,68 @@ export default async function paymentRoutes(fastify, options) {
     });
 
     /**
+     * DELETE /payments/proof/:id
+     * Apaga um comprovativo de pagamento
+     * ADMIN ONLY
+     */
+    fastify.delete('/payments/proof/:id', { preHandler: requireAdmin }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            const adminUser = request.user;
+
+            // Obter detalhes do comprovativo para apagar o ficheiro do storage
+            const { data: proof, error: proofError } = await supabase
+                .from('payment_proofs')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (proofError) {
+                if (proofError.code === 'PGRST116') {
+                    return reply.code(404).send({ error: 'Comprovativo não encontrado' });
+                }
+                throw proofError;
+            }
+
+            // Tentar apagar o ficheiro do storage (se existir)
+            if (proof.file_url && !proof.file_url.startsWith('pending_storage/')) {
+                try {
+                    // Extrair o path do ficheiro da URL
+                    const urlParts = proof.file_url.split('/proofs/');
+                    if (urlParts.length > 1) {
+                        const filePath = urlParts[1];
+                        await supabase.storage.from('proofs').remove([filePath]);
+                    }
+                } catch (storageError) {
+                    console.warn('Falha ao apagar ficheiro do storage:', storageError.message);
+                    // Continuar mesmo se falhar a remoção do storage
+                }
+            }
+
+            // Apagar o registo da base de dados
+            const { error: deleteError } = await supabase
+                .from('payment_proofs')
+                .delete()
+                .eq('id', id);
+
+            if (deleteError) throw deleteError;
+
+            // Log de auditoria
+            request.log.info({
+                event: 'PAYMENT_PROOF_DELETED',
+                adminEmail: adminUser.email,
+                proofId: id,
+                userEmail: proof.user_email
+            });
+
+            return { success: true, message: 'Comprovativo apagado com sucesso' };
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Falha ao apagar comprovativo: ' + error.message });
+        }
+    });
+
+    /**
      * PUT /payment-methods
      * Atualiza métodos de pagamento
      * ADMIN ONLY

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { authService } from '../services/auth';
+import { settingsService, AppSettings } from '../services/settingsService';
 import { Header, HeaderProps } from './Header';
 
 interface PaymentProps {
@@ -22,10 +23,21 @@ const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice =
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [methods, setMethods] = useState<PaymentMethod[]>([]);
     const [loadingMethods, setLoadingMethods] = useState(true);
+    const [appSettings, setAppSettings] = useState<AppSettings>({ whatsapp: '', email: '' });
 
     useEffect(() => {
         fetchPaymentMethods();
+        fetchAppSettings();
     }, []);
+
+    const fetchAppSettings = async () => {
+        try {
+            const settings = await settingsService.getSettings();
+            setAppSettings(settings);
+        } catch (error) {
+            console.error('Failed to fetch app settings', error);
+        }
+    };
 
     const fetchPaymentMethods = async () => {
         try {
@@ -100,7 +112,9 @@ const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice =
     };
 
     const handleWhatsAppClick = () => {
-        window.open('https://wa.me/244920000000?text=Olá, acabei de enviar o comprovativo de pagamento.', '_blank');
+        // Format phone number - remove any spaces, dashes, or plus signs
+        const phone = (appSettings.whatsapp || '244923456789').replace(/[\s\-+]/g, '');
+        window.open(`https://wa.me/${phone}?text=Olá, acabei de enviar o comprovativo de pagamento.`, '_blank');
     };
 
     return (
