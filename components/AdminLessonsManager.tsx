@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { authService } from '../services/auth';
+import { API_URL } from '../config/api';
 import RichTextEditor from './RichTextEditor';
 
 // ==================================================
@@ -155,6 +156,9 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     // Estado de geracao com IA
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     const [aiTopic, setAiTopic] = useState('');
+    const [aiContentBase, setAiContentBase] = useState(''); // Conteúdo base para a IA gerar aula
+    const [aiGenerationMode, setAiGenerationMode] = useState<'topic' | 'content' | 'import'>('topic');
+    const csvImportRef = useRef<HTMLInputElement>(null);
 
     // Estado dos dados completos gerados pela IA
     const [aulaConversacional, setAulaConversacional] = useState<ConversationalLesson | null>(null);
@@ -673,6 +677,278 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     };
 
     // ==================================================
+    // GERAR AULA COM CONTEUDO FORNECIDO (TEXTO/CSV)
+    // ==================================================
+
+    const handleGenerateLessonFromContent = async () => {
+        if (!aiContentBase.trim()) {
+            alert('Por favor, cole o conteúdo que deseja usar para gerar a aula.');
+            return;
+        }
+
+        if (!formData.area) {
+            alert('Por favor, selecione uma área profissional.');
+            return;
+        }
+
+        if (!aiTopic.trim()) {
+            alert('Por favor, insira um tema/título para a aula.');
+            return;
+        }
+
+        setIsGeneratingLesson(true);
+        try {
+            const res = await fetch(`${API_URL}/generate/lesson-full`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeaders()
+                },
+                body: JSON.stringify({
+                    tema: aiTopic,
+                    area: formData.area,
+                    nivel: formData.nivel,
+                    conteudoBase: aiContentBase
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const lesson = data.data;
+
+                    setFormData({
+                        titulo: lesson.titulo,
+                        area: lesson.area,
+                        nivel: lesson.nivel,
+                        categoria: formData.categoria
+                    });
+                    setSlides(lesson.slides || []);
+                    setAulaConversacional(lesson.aulaConversacional || null);
+                    setMiniQuiz(lesson.miniQuiz || null);
+                    setFlashcards(lesson.flashcards || []);
+                    setObjectivoGeral(lesson.objectivoGeral || '');
+                    setObjectivosEspecificos(lesson.objectivosEspecificos || []);
+                    setPreRequisitos(lesson.preRequisitos || []);
+                    setDuracaoEstimadaMinutos(lesson.duracaoEstimadaMinutos || 30);
+                    setTags(lesson.tags || []);
+                    setAiContentBase('');
+
+                    const blocosCount = lesson.aulaConversacional?.blocos?.length || 0;
+                    const quizCount = lesson.miniQuiz?.questoes?.length || 0;
+                    const cardsCount = lesson.flashcards?.length || 0;
+
+                    alert(`Aula gerada com sucesso!\n\n${lesson.slides?.length || 0} slides\n${blocosCount} blocos conversacionais\n${quizCount} questões de quiz\n${cardsCount} flashcards`);
+                }
+            } else {
+                const error = await res.json();
+                alert('Erro ao gerar aula: ' + (error.details || error.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            console.error('Erro ao gerar aula:', error);
+            alert('Erro ao gerar aula com conteúdo');
+        } finally {
+            setIsGeneratingLesson(false);
+        }
+    };
+
+    // ==================================================
+    // PARSEAR CSV PARA ESTRUTURA DE AULA
+    // ==================================================
+
+    const parseCSVLine = (line: string, separator: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === separator && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    };
+
+    const parseCSVToLesson = (csvText: string): { slides: Slide[], quiz: MiniQuizQuestion[], flashcards: LessonFlashcard[] } | null => {
+        try {
+            const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+            if (lines.length < 2) {
+                throw new Error('CSV deve ter pelo menos um cabeçalho e uma linha de dados');
+            }
+
+            const firstLine = lines[0];
+            const separator = firstLine.includes(';') ? ';' : ',';
+            const headers = firstLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+
+            const slidesResult: Slide[] = [];
+            const quizResult: MiniQuizQuestion[] = [];
+            const flashcardsResult: LessonFlashcard[] = [];
+
+            const hasSlideColumns = headers.includes('titulo') && (headers.includes('conteudo') || headers.includes('conteudoprincipal'));
+            const hasQuizColumns = headers.includes('enunciado') && headers.includes('correta');
+            const hasFlashcardColumns = headers.includes('frente') && headers.includes('verso');
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i], separator);
+                if (values.length === 0) continue;
+
+                const row: Record<string, string> = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx]?.replace(/^"|"$/g, '').trim() || '';
+                });
+
+                if (hasSlideColumns && row['titulo']) {
+                    const slide: Slide = {
+                        id: `slide-${Date.now()}-${i}`,
+                        ordem: slidesResult.length + 1,
+                        titulo: row['titulo'] || '',
+                        conteudoPrincipal: row['conteudo'] || row['conteudoprincipal'] || '',
+                        pontosChave: row['pontoschave']
+                            ? row['pontoschave'].split('|').map(p => {
+                                const parts = p.split(':');
+                                return { titulo: parts[0]?.trim() || '', descricao: parts[1]?.trim() || '' };
+                            })
+                            : [],
+                        audioScript: row['audioscript'] || row['audio'] || '',
+                        duracaoAudioSegundos: parseInt(row['duracao'] || '90') || 90,
+                        conceito: row['conceito'] || '',
+                        relevanciaProva: (row['relevancia'] || row['relevanciaprova'] || 'alta') as 'alta' | 'media' | 'baixa'
+                    };
+                    slidesResult.push(slide);
+                }
+
+                if (hasQuizColumns && row['enunciado']) {
+                    const question: MiniQuizQuestion = {
+                        id: `quiz-${Date.now()}-${i}`,
+                        enunciado: row['enunciado'],
+                        alternativas: [
+                            { letra: 'A', texto: row['a'] || row['alternativaa'] || '' },
+                            { letra: 'B', texto: row['b'] || row['alternativab'] || '' },
+                            { letra: 'C', texto: row['c'] || row['alternativac'] || '' },
+                            { letra: 'D', texto: row['d'] || row['alternativad'] || '' }
+                        ].filter(alt => alt.texto),
+                        correta: row['correta']?.toUpperCase() || 'A',
+                        explicacao: row['explicacao'] || '',
+                        slideReferencia: row['slidereferencia'] || undefined
+                    };
+                    quizResult.push(question);
+                }
+
+                if (hasFlashcardColumns && row['frente']) {
+                    const flashcard: LessonFlashcard = {
+                        id: `fc-${Date.now()}-${i}`,
+                        frente: row['frente'],
+                        verso: row['verso'] || '',
+                        slideOrigem: row['slideorigem'] || undefined,
+                        prioridade: (row['prioridade'] || 'media') as 'alta' | 'media' | 'baixa'
+                    };
+                    flashcardsResult.push(flashcard);
+                }
+            }
+
+            return { slides: slidesResult, quiz: quizResult, flashcards: flashcardsResult };
+        } catch (error) {
+            console.error('Erro ao parsear CSV:', error);
+            return null;
+        }
+    };
+
+    // ==================================================
+    // IMPORTAR AULA PRONTA DE CSV
+    // ==================================================
+
+    const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.csv')) {
+            alert('Por favor, selecione um arquivo CSV válido.');
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const parsed = parseCSVToLesson(text);
+
+            if (!parsed) {
+                alert('Erro ao interpretar o CSV. Verifique o formato do arquivo.');
+                return;
+            }
+
+            const { slides: importedSlides, quiz: importedQuiz, flashcards: importedFlashcards } = parsed;
+
+            if (importedSlides.length === 0 && importedQuiz.length === 0 && importedFlashcards.length === 0) {
+                alert('Nenhum dado válido encontrado no CSV. Verifique o formato.');
+                return;
+            }
+
+            const shouldReplace = slides.length > 0 || (miniQuiz?.questoes?.length || 0) > 0 || flashcards.length > 0;
+
+            if (shouldReplace) {
+                const confirmReplace = confirm(
+                    `O CSV contém:\n- ${importedSlides.length} slides\n- ${importedQuiz.length} questões\n- ${importedFlashcards.length} flashcards\n\nDeseja SUBSTITUIR os dados atuais?\nOK = Substituir, Cancelar = Adicionar`
+                );
+
+                if (confirmReplace) {
+                    if (importedSlides.length > 0) setSlides(importedSlides);
+                    if (importedQuiz.length > 0) {
+                        setMiniQuiz({
+                            titulo: 'Quiz da Aula',
+                            descricao: 'Teste seus conhecimentos',
+                            questoes: importedQuiz,
+                            pontuacaoMinima: 60
+                        });
+                    }
+                    if (importedFlashcards.length > 0) setFlashcards(importedFlashcards);
+                } else {
+                    if (importedSlides.length > 0) {
+                        setSlides(prev => [...prev, ...importedSlides.map((s, i) => ({ ...s, ordem: prev.length + i + 1 }))]);
+                    }
+                    if (importedQuiz.length > 0) {
+                        setMiniQuiz(prev => ({
+                            titulo: prev?.titulo || 'Quiz da Aula',
+                            descricao: prev?.descricao || 'Teste seus conhecimentos',
+                            questoes: [...(prev?.questoes || []), ...importedQuiz],
+                            pontuacaoMinima: prev?.pontuacaoMinima || 60
+                        }));
+                    }
+                    if (importedFlashcards.length > 0) {
+                        setFlashcards(prev => [...prev, ...importedFlashcards]);
+                    }
+                }
+            } else {
+                if (importedSlides.length > 0) setSlides(importedSlides);
+                if (importedQuiz.length > 0) {
+                    setMiniQuiz({
+                        titulo: 'Quiz da Aula',
+                        descricao: 'Teste seus conhecimentos',
+                        questoes: importedQuiz,
+                        pontuacaoMinima: 60
+                    });
+                }
+                if (importedFlashcards.length > 0) setFlashcards(importedFlashcards);
+            }
+
+            alert(`Importação concluída!\n${importedSlides.length} slides\n${importedQuiz.length} questões\n${importedFlashcards.length} flashcards`);
+
+            if (csvImportRef.current) {
+                csvImportRef.current.value = '';
+            }
+
+        } catch (error) {
+            console.error('Erro ao importar CSV:', error);
+            alert('Erro ao ler o arquivo CSV.');
+        }
+    };
+
+    // ==================================================
     // RENDER - LISTA DE AULAS
     // ==================================================
 
@@ -854,45 +1130,191 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                     </div>
                 </div>
 
-                {/* Geracao com IA */}
+                {/* Geracao com IA - Versao Expandida */}
                 <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
-                    <h4 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        Gerar Aula com IA
+                        Gerar/Importar Aula
                     </h4>
-                    <p className="text-sm text-purple-700 mb-3">
-                        Insira um tema e a IA gerara automaticamente slides, scripts de audio e conteudo.
-                    </p>
-                    <div className="flex gap-3">
-                        <input
-                            type="text"
-                            value={aiTopic}
-                            onChange={e => setAiTopic(e.target.value)}
-                            className="flex-1 px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500"
-                            placeholder="ex: Sinais vitais e monitorizacao"
-                        />
+
+                    {/* Abas de modo */}
+                    <div className="flex gap-2 mb-4 border-b border-purple-200 pb-3">
                         <button
-                            onClick={handleGenerateLessonWithAI}
-                            disabled={isGeneratingLesson || !aiTopic.trim() || !formData.area}
-                            className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            onClick={() => setAiGenerationMode('topic')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'topic'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-purple-700 hover:bg-purple-100'
+                                }`}
                         >
-                            {isGeneratingLesson ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Gerando...
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    Gerar
-                                </>
-                            )}
+                            Por Tema
+                        </button>
+                        <button
+                            onClick={() => setAiGenerationMode('content')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'content'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-purple-700 hover:bg-purple-100'
+                                }`}
+                        >
+                            Com Conteudo
+                        </button>
+                        <button
+                            onClick={() => setAiGenerationMode('import')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'import'
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-white text-green-700 hover:bg-green-100'
+                                }`}
+                        >
+                            Importar CSV
                         </button>
                     </div>
+
+                    {/* Modo: Gerar por Tema */}
+                    {aiGenerationMode === 'topic' && (
+                        <div className="space-y-3">
+                            <p className="text-sm text-purple-700">
+                                Insira um tema e a IA gera automaticamente slides, scripts de audio e conteudo.
+                            </p>
+                            <div className="flex gap-3">
+                                <input
+                                    type="text"
+                                    value={aiTopic}
+                                    onChange={e => setAiTopic(e.target.value)}
+                                    className="flex-1 px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                                    placeholder="ex: Sinais vitais e monitorizacao"
+                                />
+                                <button
+                                    onClick={handleGenerateLessonWithAI}
+                                    disabled={isGeneratingLesson || !aiTopic.trim() || !formData.area}
+                                    className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isGeneratingLesson ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Gerando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            Gerar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modo: Gerar com Conteudo */}
+                    {aiGenerationMode === 'content' && (
+                        <div className="space-y-3">
+                            <p className="text-sm text-purple-700">
+                                Cole o conteudo (texto ou CSV) e a IA cria uma aula estruturada baseada nesse material.
+                            </p>
+                            <div className="flex gap-3">
+                                <input
+                                    type="text"
+                                    value={aiTopic}
+                                    onChange={e => setAiTopic(e.target.value)}
+                                    className="flex-1 px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Titulo da aula (obrigatorio)"
+                                />
+                            </div>
+                            <textarea
+                                value={aiContentBase}
+                                onChange={e => setAiContentBase(e.target.value)}
+                                className="w-full h-48 px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 resize-none text-sm"
+                                placeholder="Cole aqui o conteudo que deseja usar como base para a aula: texto corrido, topicos, conteudo de livros/apostilas, ou dados em formato CSV. A IA ira analisar e criar slides, scripts de audio, blocos conversacionais, quiz e flashcards."
+                            />
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-purple-600">
+                                    {aiContentBase.length} caracteres
+                                </span>
+                                <button
+                                    onClick={handleGenerateLessonFromContent}
+                                    disabled={isGeneratingLesson || !aiContentBase.trim() || !aiTopic.trim() || !formData.area}
+                                    className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isGeneratingLesson ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Processando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            Gerar com Conteudo
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modo: Importar CSV */}
+                    {aiGenerationMode === 'import' && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-green-700">
+                                Importe uma aula ja estruturada em formato CSV. O sistema aceita slides, quiz e flashcards.
+                            </p>
+
+                            <div className="bg-white rounded-xl p-4 border border-green-200">
+                                <h5 className="font-medium text-green-900 mb-2">Formatos Aceites:</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    <div className="bg-green-50 p-3 rounded-lg">
+                                        <strong className="text-green-800">Slides:</strong>
+                                        <code className="block mt-1 text-green-600 break-all">
+                                            titulo;conteudo;conceito;audioscript;relevancia
+                                        </code>
+                                    </div>
+                                    <div className="bg-blue-50 p-3 rounded-lg">
+                                        <strong className="text-blue-800">Quiz:</strong>
+                                        <code className="block mt-1 text-blue-600 break-all">
+                                            enunciado;A;B;C;D;correta;explicacao
+                                        </code>
+                                    </div>
+                                    <div className="bg-amber-50 p-3 rounded-lg">
+                                        <strong className="text-amber-800">Flashcards:</strong>
+                                        <code className="block mt-1 text-amber-600 break-all">
+                                            frente;verso;prioridade
+                                        </code>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <input
+                                    ref={csvImportRef}
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleImportCSV}
+                                    className="hidden"
+                                    id="csv-import-input"
+                                />
+                                <label
+                                    htmlFor="csv-import-input"
+                                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 cursor-pointer flex items-center gap-2 transition-colors"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    Selecionar Arquivo CSV
+                                </label>
+                                <span className="text-sm text-slate-500">
+                                    Formato: .csv (separador: virgula ou ponto e virgula)
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600">
+                                <strong>Dica:</strong> Voce pode criar o CSV no Excel/Google Sheets e exportar como CSV.
+                                O sistema detecta automaticamente se o arquivo contem slides, quiz ou flashcards.
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,8 +14,8 @@ const UPLOAD_DIR = path.join(__dirname, '../../public/uploads');
 
 export default async function materialRoutes(fastify, options) {
 
-    // Upload material
-    fastify.post('/materials', async (request, reply) => {
+    // Upload material (ADMIN ONLY)
+    fastify.post('/materials', { preHandler: requireAdmin }, async (request, reply) => {
         try {
             const parts = request.parts();
             let title = 'Sem título';
