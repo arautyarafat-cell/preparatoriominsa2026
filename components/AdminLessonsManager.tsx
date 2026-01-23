@@ -1265,24 +1265,45 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
 
                             <div className="bg-white rounded-xl p-4 border border-green-200">
                                 <h5 className="font-medium text-green-900 mb-2">Formatos Aceites:</h5>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                <div className="grid grid-cols-1 gap-3 text-xs">
+                                    {/* Slides - formato expandido */}
                                     <div className="bg-green-50 p-3 rounded-lg">
-                                        <strong className="text-green-800">Slides:</strong>
-                                        <code className="block mt-1 text-green-600 break-all">
-                                            titulo;conteudo;conceito;audioscript;relevancia
-                                        </code>
+                                        <strong className="text-green-800 text-sm">📊 Slides:</strong>
+                                        <div className="mt-2 space-y-1">
+                                            <code className="block text-green-700 font-semibold">
+                                                titulo;conteudo;pontoschave;conceito;audioscript;relevancia
+                                            </code>
+                                            <p className="text-green-600 mt-2">
+                                                <strong>pontoschave:</strong> Use <code className="bg-green-100 px-1 rounded">|</code> para separar múltiplos pontos e <code className="bg-green-100 px-1 rounded">:</code> para título e descrição.
+                                            </p>
+                                            <p className="text-green-600 text-[11px] italic">
+                                                Exemplo: <code className="bg-green-100 px-1 rounded">Sintoma 1:Febre alta|Sintoma 2:Calafrios intensos|Diagnóstico:Exame de sangue</code>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="bg-blue-50 p-3 rounded-lg">
-                                        <strong className="text-blue-800">Quiz:</strong>
-                                        <code className="block mt-1 text-blue-600 break-all">
-                                            enunciado;A;B;C;D;correta;explicacao
-                                        </code>
-                                    </div>
-                                    <div className="bg-amber-50 p-3 rounded-lg">
-                                        <strong className="text-amber-800">Flashcards:</strong>
-                                        <code className="block mt-1 text-amber-600 break-all">
-                                            frente;verso;prioridade
-                                        </code>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {/* Quiz */}
+                                        <div className="bg-blue-50 p-3 rounded-lg">
+                                            <strong className="text-blue-800 text-sm">✅ Quiz:</strong>
+                                            <code className="block mt-2 text-blue-700 font-semibold">
+                                                enunciado;a;b;c;d;correta;explicacao
+                                            </code>
+                                            <p className="text-blue-600 text-[11px] mt-1 italic">
+                                                Exemplo: O que causa malária?;Vírus;Bactéria;Parasita;Fungo;C;Causada pelo Plasmodium
+                                            </p>
+                                        </div>
+
+                                        {/* Flashcards */}
+                                        <div className="bg-amber-50 p-3 rounded-lg">
+                                            <strong className="text-amber-800 text-sm">🃏 Flashcards:</strong>
+                                            <code className="block mt-2 text-amber-700 font-semibold">
+                                                frente;verso;prioridade
+                                            </code>
+                                            <p className="text-amber-600 text-[11px] mt-1 italic">
+                                                Exemplo: O que é malária?;Doença parasitária causada pelo Plasmodium;alta
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1338,7 +1359,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                                     value={csvPasteText}
                                     onChange={(e) => setCsvPasteText(e.target.value)}
                                     className="w-full h-40 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none font-mono text-sm"
-                                    placeholder="Cole aqui o conteúdo CSV...&#10;&#10;Exemplo para Slides:&#10;titulo;conteudo;audioscript;relevancia&#10;Introdução à Malária;A malária é uma doença...;Este slide apresenta...;alta&#10;&#10;Exemplo para Quiz:&#10;enunciado;a;b;c;d;correta;explicacao&#10;O que é malária?;Vírus;Bactéria;Parasita;Fungo;C;Causada pelo Plasmodium"
+                                    placeholder="Cole aqui o conteúdo CSV...&#10;&#10;Exemplo para Slides (com pontos chave):&#10;titulo;conteudo;pontoschave;conceito;audioscript;relevancia&#10;Introdução à Malária;A malária é uma doença parasitária;Sintoma:Febre alta|Causa:Plasmodium|Vetor:Mosquito Anopheles;Conceito básico de malária;Este slide apresenta os conceitos básicos;alta&#10;&#10;Exemplo para Quiz:&#10;enunciado;a;b;c;d;correta;explicacao&#10;O que é malária?;Vírus;Bactéria;Parasita;Fungo;C;Causada pelo Plasmodium"
                                 />
                                 <div className="flex items-center justify-between mt-3">
                                     <span className="text-xs text-slate-500">
