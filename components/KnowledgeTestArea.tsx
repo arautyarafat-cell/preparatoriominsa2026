@@ -24,6 +24,10 @@ interface TrialLimitState {
 }
 
 const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigate }) => {
+    // Authentication state - OBRIGATÓRIO para acesso
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
     // Configuration state
     const [showConfig, setShowConfig] = useState(true);
     const [selectedCategoryId, setSelectedCategoryId] = useState<CategoryId | ''>('');
@@ -56,6 +60,18 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
     const [showLimitReached, setShowLimitReached] = useState(false);
     // Blocking reason state for modal content
     const [blockingReason, setBlockingReason] = useState<'trial_limit' | 'question_limit'>('trial_limit');
+
+    // Verificar autenticação ao carregar
+    useEffect(() => {
+        const checkAuth = () => {
+            const user = authService.getUser();
+            const authenticated = authService.isAuthenticated();
+            console.log('[KnowledgeTestArea] Verificação de autenticação:', { authenticated, user: user?.email });
+            setIsAuthenticated(authenticated);
+            setCurrentUser(user);
+        };
+        checkAuth();
+    }, []);
 
     // Verificar limite de questionários de teste ao carregar
     useEffect(() => {
@@ -465,6 +481,102 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
             }
         }
     };
+
+    // Verificando autenticação
+    if (isAuthenticated === null) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-[#0a092d] via-[#1a1d3a] to-[#0a092d] flex flex-col items-center justify-center p-6 text-center">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-[#2e3856] border-t-[#3ccfcf] rounded-full animate-spin"></div>
+                </div>
+                <h2 className="text-xl font-bold text-white mt-6">A verificar sessão...</h2>
+                <p className="text-slate-400 mt-2">Aguarde um momento</p>
+            </div>
+        );
+    }
+
+    // UTILIZADOR NÃO AUTENTICADO - Mostrar tela para criar conta ou iniciar sessão
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-[#0a092d] via-[#1a1d3a] to-[#0a092d] flex flex-col items-center justify-center p-4 md:p-6">
+                <div className="bg-[#2e3856]/80 backdrop-blur-xl p-8 md:p-12 rounded-[2.5rem] shadow-2xl max-w-lg w-full border border-slate-700/50">
+
+                    {/* Ícone */}
+                    <div className="relative mb-6">
+                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-[#3ccfcf]/20 to-[#2da8a8]/20 rounded-full flex items-center justify-center border-2 border-[#3ccfcf]/50">
+                            <span className="text-5xl">🔐</span>
+                        </div>
+                        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#3ccfcf] text-[#0a092d] px-4 py-1 rounded-full text-xs font-bold uppercase">
+                            Acesso Restrito
+                        </div>
+                    </div>
+
+                    {/* Título */}
+                    <h1 className="text-2xl md:text-3xl font-display font-bold text-white mb-4 text-center">
+                        Inicie sessão para continuar
+                    </h1>
+
+                    {/* Mensagem */}
+                    <p className="text-slate-300 mb-6 leading-relaxed text-center">
+                        Para aceder aos <span className="font-bold text-[#3ccfcf]">Testes de Conhecimento</span> para o Concurso MINSA 2026,
+                        é necessário ter uma conta na plataforma.
+                    </p>
+
+                    {/* Benefícios */}
+                    <div className="bg-[#0a092d]/50 rounded-2xl p-5 mb-6 text-left border border-slate-700/50">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+                            Com uma conta você poderá:
+                        </h3>
+                        <ul className="space-y-2">
+                            <li className="flex items-center gap-3 text-slate-300">
+                                <span className="text-[#3ccfcf]">✓</span>
+                                <span>Salvar seu <span className="font-semibold text-white">progresso</span> nos questionários</span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300">
+                                <span className="text-[#3ccfcf]">✓</span>
+                                <span>Acompanhar suas <span className="font-semibold text-white">estatísticas</span></span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300">
+                                <span className="text-[#3ccfcf]">✓</span>
+                                <span>Aceder a <span className="font-semibold text-white">5 questionários gratuitos</span></span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300">
+                                <span className="text-[#3ccfcf]">✓</span>
+                                <span>Desbloquear todos os recursos com plano Pro</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Botões de ação */}
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => onNavigate?.('login')}
+                            className="w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3 
+                                bg-gradient-to-r from-[#3ccfcf] to-[#2da8a8] text-[#0a092d] hover:shadow-[#3ccfcf]/30 hover:shadow-xl hover:scale-[1.02]"
+                        >
+                            <span>🚀</span>
+                            Iniciar Sessão / Criar Conta
+                        </button>
+
+                        <button
+                            onClick={onExit}
+                            className="w-full text-slate-400 py-3 font-medium hover:text-white transition-colors text-sm flex items-center justify-center gap-2"
+                        >
+                            <span>←</span>
+                            Voltar ao Início
+                        </button>
+                    </div>
+
+                    {/* Nota */}
+                    <div className="mt-6 pt-6 border-t border-slate-700/50 text-center">
+                        <p className="text-slate-500 text-sm">
+                            Criar uma conta é <span className="text-[#3ccfcf] font-semibold">100% gratuito</span> e leva menos de 1 minuto.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // Loading state - verificando limite de teste
     if (trialLimit.loading) {
