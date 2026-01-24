@@ -224,7 +224,8 @@ export const generateQuestions = async (
   categoryTitle: string,
   content: string,
   categoryId?: string, // Novo: ID direto da categoria
-  topicFilter?: string // Novo: Filtro por tópico específico
+  topicFilter?: string, // Novo: Filtro por tópico específico
+  questionCount?: number // Novo: Quantidade de questões desejada
 ): Promise<GeneratedQuestion[]> => {
   try {
     // Usar o categoryId passado diretamente, ou tentar buscar pelo título
@@ -233,7 +234,7 @@ export const generateQuestions = async (
       category_id = await getCategoryIdByTitle(categoryTitle);
     }
 
-    console.log(`Quiz: Buscando para categoria: ${categoryTitle}, category_id: ${category_id}, topic_filter: ${topicFilter || 'all'}`);
+    console.log(`Quiz: Buscando para categoria: ${categoryTitle}, category_id: ${category_id}, topic_filter: ${topicFilter || 'all'}, question_count: ${questionCount || 20}`);
 
     const response = await fetch(`${BACKEND_URL}/generate/quiz`, {
       method: 'POST',
@@ -241,7 +242,8 @@ export const generateQuestions = async (
       body: JSON.stringify({
         topic: `${topicTitle} - ${categoryTitle}\n\n${content}`,
         category_id: category_id, // Send category_id to filter by trail
-        topic_filter: topicFilter || null // Send topic filter if provided
+        topic_filter: topicFilter || null, // Send topic filter if provided
+        question_count: questionCount || 20 // Send requested question count
       })
     });
 
@@ -295,8 +297,8 @@ export const generateQuestions = async (
 /**
  * Generates a general quiz for the category hub.
  */
-export const generateGeneralQuiz = async (categoryTitle: string, categoryId?: string, topicFilter?: string): Promise<GeneratedQuestion[]> => {
-  return generateQuestions("Simulado Geral", categoryTitle, "Tópicos variados: Legislação, Prática Clínica, Ética e Saúde Pública.", categoryId, topicFilter);
+export const generateGeneralQuiz = async (categoryTitle: string, categoryId?: string, topicFilter?: string, questionCount?: number): Promise<GeneratedQuestion[]> => {
+  return generateQuestions("Simulado Geral", categoryTitle, "Tópicos variados: Legislação, Prática Clínica, Ética e Saúde Pública.", categoryId, topicFilter, questionCount);
 };
 
 /**

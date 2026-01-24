@@ -411,7 +411,8 @@ export default async function quizRoutes(fastify, options) {
         };
     });
     fastify.post('/generate/quiz', async (request, reply) => {
-        const { topic, category_id, topic_filter } = request.body;
+        const { topic, category_id, topic_filter, question_count } = request.body;
+        const requestedQuestionCount = Math.min(parseInt(question_count) || 20, 100); // Default 20, max 100
         const ipAddress = getClientIp(request);
 
         if (!topic) {
@@ -464,7 +465,7 @@ export default async function quizRoutes(fastify, options) {
             let existingQuestions = [];
             let dbError = null;
 
-            console.log(`[Quiz] Recebido - topic: ${topic}, category_id: ${category_id}, topic_filter: ${topic_filter || 'all'}, user: ${userId || 'anon'}`);
+            console.log(`[Quiz] Recebido - topic: ${topic}, category_id: ${category_id}, topic_filter: ${topic_filter || 'all'}, question_count: ${requestedQuestionCount}, user: ${userId || 'anon'}`);
 
             // Converter o category_id do frontend para UUID do banco de dados
             const realCategoryId = await getCategoryUUID(category_id);
@@ -505,8 +506,8 @@ export default async function quizRoutes(fastify, options) {
                     }
                 }
 
-                // Increase limit to allow for 20 questions
-                query = query.limit(50);
+                // Increase limit to allow for 80-100 questions requested by user
+                query = query.limit(200);
 
                 const { data, error } = await query;
 
@@ -517,9 +518,9 @@ export default async function quizRoutes(fastify, options) {
 
             // Return database questions if found
             if (!dbError && existingQuestions && existingQuestions.length > 0) {
-                // Shuffle and pick up to 20
+                // Shuffle and pick up to requestedQuestionCount
                 const shuffled = existingQuestions.sort(() => 0.5 - Math.random());
-                const selected = shuffled.slice(0, 20); // CHANGED FROM 5 TO 20
+                const selected = shuffled.slice(0, requestedQuestionCount); // Use requested count
 
                 // REGISTRAR QUE O USUÁRIO VIU ESTAS QUESTÕES
                 if (userId && selected.length > 0) {

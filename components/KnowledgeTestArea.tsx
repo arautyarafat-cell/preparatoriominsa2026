@@ -334,33 +334,35 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
         }
 
         try {
-            // Generate multiple batches if needed to reach the selected count
-            let allQuestions: GeneratedQuestion[] = [];
+            // Fazer uma única chamada passando a quantidade de questões desejada
             const topicFilter = selectedTopic === '' ? undefined : selectedTopic;
 
-            // Generate questions in batches (API typically returns 10-20 at a time)
-            while (allQuestions.length < selectedQuestionCount) {
-                const generated = await generateGeneralQuiz(
-                    selectedCategory.title,
-                    selectedCategoryId,
-                    topicFilter
-                );
+            console.log(`[KnowledgeTestArea] Solicitando ${selectedQuestionCount} questões...`);
 
-                // Add questions avoiding duplicates
-                for (const q of generated) {
-                    if (!allQuestions.find(existing => existing.enunciado === q.enunciado)) {
-                        allQuestions.push(q);
-                    }
-                    if (allQuestions.length >= selectedQuestionCount) break;
-                }
+            // Agora chamamos com o questionCount que será usado pelo backend
+            const generated = await generateGeneralQuiz(
+                selectedCategory.title,
+                selectedCategoryId,
+                topicFilter,
+                selectedQuestionCount // Passa quantidade desejada
+            );
 
-                // Safety check to prevent infinite loop
-                if (generated.length === 0) break;
+            if (generated.length === 0) {
+                console.warn('[KnowledgeTestArea] Nenhuma questão retornada!');
+                alert('Não há questões suficientes para esta categoria. Tente outra categoria ou menos questões.');
+                setShowConfig(true);
+                return;
             }
 
-            // Trim to exact count and shuffle
-            allQuestions = allQuestions.slice(0, selectedQuestionCount);
-            allQuestions = allQuestions.sort(() => Math.random() - 0.5);
+            // Shuffle as questões recebidas
+            let allQuestions = generated.sort(() => Math.random() - 0.5);
+
+            console.log(`[KnowledgeTestArea] Recebidas ${allQuestions.length} questões`);
+
+            // Se recebemos menos do que o solicitado, avisar o usuário
+            if (allQuestions.length < selectedQuestionCount) {
+                console.warn(`[KnowledgeTestArea] Apenas ${allQuestions.length} questões disponíveis (solicitado: ${selectedQuestionCount})`);
+            }
 
             setQuestions(allQuestions);
         } catch (error) {
