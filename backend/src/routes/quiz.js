@@ -47,33 +47,269 @@ async function getCategoryUUID(frontendCategoryId) {
     return data[0].id;
 }
 
+// Limite de questionários para utilizadores de teste (sem plano Pro/Premier)
+const TRIAL_QUIZ_LIMIT = 5;
+
+/**
+ * Obtém o IP real do cliente, considerando proxies (Render/Vercel)
+ */
+function getClientIp(request) {
+    // Tentar X-Forwarded-For primeiro (proxies)
+    const forwardedFor = request.headers['x-forwarded-for'];
+    if (forwardedFor) {
+        // X-Forwarded-For pode conter múltiplos IPs: "client, proxy1, proxy2"
+        const ips = forwardedFor.split(',').map(ip => ip.trim());
+        return ips[0]; // Primeiro IP é o cliente real
+    }
+
+    // Tentar X-Real-IP (alguns proxies usam este)
+    const realIp = request.headers['x-real-ip'];
+    if (realIp) return realIp;
+
+    // Fallback para IP direto da conexão
+    return request.ip || request.connection?.remoteAddress || 'unknown';
+}
+
+/**
+ * Verifica se o utilizador tem plano Pro ou Premier
+ */
+async function hasProPlan(userId) {
+    if (!userId) return false;
+
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', userId)
+            .single();
+
+        console.log(`[Quiz] Checking plan for user ${userId}:`, data?.plan);
+
+        if (error || !data) return false;
+        return ['pro', 'premier', 'premium'].includes(data.plan?.toLowerCase());
+    } catch (e) {
+        console.error('[Quiz] Erro ao verificar plano:', e);
+        return false;
+    }
+}
+
+/**
+ * Verifica limite de questionários de teste por IP
+ */
+async function checkTrialLimit(ipAddress) {
+    try {
+        const { data, error } = await supabase
+            .from('trial_quiz_limits')
+            .select('quiz_count, first_quiz_at, last_quiz_at')
+            .eq('ip_address', ipAddress)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+            console.error('[Quiz Trial] Erro ao buscar limite:', error);
+            return { count: 0, limit: TRIAL_QUIZ_LIMIT, canTakeQuiz: true };
+        }
+
+        const count = data?.quiz_count || 0;
+        return {
+            count,
+            limit: TRIAL_QUIZ_LIMIT,
+            canTakeQuiz: count < TRIAL_QUIZ_LIMIT,
+            firstQuizAt: data?.first_quiz_at,
+            lastQuizAt: data?.last_quiz_at
+        };
+    } catch (e) {
+        console.error('[Quiz Trial] Erro ao verificar limite:', e);
+        return { count: 0, limit: TRIAL_QUIZ_LIMIT, canTakeQuiz: true };
+    }
+}
+
+/**
+ * Incrementa o contador de questionários para um IP
+ */
+async function incrementTrialCount(ipAddress) {
+    try {
+        // Tentar atualizar registro existente
+        const { data: existing } = await supabase
+            .from('trial_quiz_limits')
+            .select('quiz_count')
+            .eq('ip_address', ipAddress)
+            .single();
+
+        if (existing) {
+            // Atualizar contador existente
+            const { error } = await supabase
+                .from('trial_quiz_limits')
+                .update({
+                    quiz_count: existing.quiz_count + 1,
+                    last_quiz_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .eq('ip_address', ipAddress);
+
+            if (error) throw error;
+            return { count: existing.quiz_count + 1, success: true };
+        } else {
+            // Criar novo registro
+            const { error } = await supabase
+                .from('trial_quiz_limits')
+                .insert({
+                    ip_address: ipAddress,
+                    quiz_count: 1,
+                    first_quiz_at: new Date().toISOString(),
+                    last_quiz_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+            return { count: 1, success: true };
+        }
+    } catch (e) {
+        console.error('[Quiz Trial] Erro ao incrementar contador:', e);
+        return { count: 0, success: false, error: e.message };
+    }
+}
+
 export default async function quizRoutes(fastify, options) {
+
+    /**
+     * GET /trial-quiz-limit
+     * Verifica o estado do limite de questionários de teste para o IP atual
+     * Retorna se o utilizador pode fazer mais questionários e quantos restam
+     */
+    fastify.get('/trial-quiz-limit', async (request, reply) => {
+        const ipAddress = getClientIp(request);
+        console.log(`[Quiz Trial] Verificando limite para IP: ${ipAddress}`);
+
+        // Verificar se há utilizador autenticado com plano Pro/Premier
+        let userHasProPlan = false;
+        if (request.headers.authorization && request.headers['x-device-id']) {
+            try {
+                await authenticate(request, reply);
+                if (reply.sent) return;
+
+                if (request.user?.id) {
+                    userHasProPlan = await hasProPlan(request.user.id);
+                }
+            } catch (authErr) {
+                console.warn('[Quiz Trial] Auth check failed:', authErr);
+            }
+        }
+
+        // Utilizadores Pro/Premier não têm limite
+        if (userHasProPlan) {
+            return {
+                hasProPlan: true,
+                canTakeQuiz: true,
+                count: 0,
+                limit: TRIAL_QUIZ_LIMIT,
+                remaining: Infinity,
+                message: 'Acesso ilimitado com plano Pro/Premier'
+            };
+        }
+
+        // Verificar limite por IP
+        const limitStatus = await checkTrialLimit(ipAddress);
+
+        return {
+            hasProPlan: false,
+            canTakeQuiz: limitStatus.canTakeQuiz,
+            count: limitStatus.count,
+            limit: limitStatus.limit,
+            remaining: Math.max(0, limitStatus.limit - limitStatus.count),
+            firstQuizAt: limitStatus.firstQuizAt,
+            lastQuizAt: limitStatus.lastQuizAt,
+            message: limitStatus.canTakeQuiz
+                ? `Você tem ${limitStatus.limit - limitStatus.count} questionários gratuitos restantes`
+                : 'Limite de questionários gratuitos atingido. Assine o plano Pro ou Premier para continuar.'
+        };
+    });
+
+    /**
+     * POST /trial-quiz-limit/increment
+     * Incrementa o contador de questionários para o IP atual
+     * Chamado quando o utilizador completa um questionário
+     */
+    fastify.post('/trial-quiz-limit/increment', async (request, reply) => {
+        const ipAddress = getClientIp(request);
+        console.log(`[Quiz Trial] Incrementando contador para IP: ${ipAddress}`);
+
+        // Verificar se há utilizador autenticado com plano Pro/Premier
+        let userHasProPlan = false;
+        if (request.headers.authorization && request.headers['x-device-id']) {
+            try {
+                await authenticate(request, reply);
+                if (reply.sent) return;
+
+                if (request.user?.id) {
+                    userHasProPlan = await hasProPlan(request.user.id);
+                }
+            } catch (authErr) {
+                console.warn('[Quiz Trial] Auth check failed:', authErr);
+            }
+        }
+
+        // Utilizadores Pro/Premier não precisam incrementar
+        if (userHasProPlan) {
+            return {
+                success: true,
+                hasProPlan: true,
+                message: 'Utilizador com plano Pro/Premier - sem limite'
+            };
+        }
+
+        // Incrementar contador
+        const result = await incrementTrialCount(ipAddress);
+        const remaining = Math.max(0, TRIAL_QUIZ_LIMIT - result.count);
+
+        return {
+            success: result.success,
+            hasProPlan: false,
+            count: result.count,
+            limit: TRIAL_QUIZ_LIMIT,
+            remaining,
+            canContinue: remaining > 0,
+            message: remaining > 0
+                ? `Questionário registrado. Restam ${remaining} questionários gratuitos.`
+                : 'Limite de questionários gratuitos atingido. Assine o plano Pro ou Premier para continuar.'
+        };
+    });
     fastify.post('/generate/quiz', async (request, reply) => {
         const { topic, category_id, topic_filter } = request.body;
+        const ipAddress = getClientIp(request);
 
         if (!topic) {
             return reply.code(400).send({ error: 'Topic is required' });
         }
 
-        // Attempt Authentication to track history
-        // We do this manually inside the route to handle the "Obrigatório" requirement gracefully
-        // If headers are missing, we might proceed but skipping history (or error if strict).
-        // The user requirement says "REGISTAR PERGUNTAS JÁ USADAS (OBRIGATÓRIO)", so we should try to auth.
+        // Attempt Authentication to check for Pro Plan
         if (request.headers.authorization && request.headers['x-device-id']) {
             try {
                 await authenticate(request, reply);
                 if (reply.sent) return; // Auth failed and sent response
             } catch (authErr) {
                 console.warn("[Quiz] Auth attempt failed:", authErr);
-                // Proceed as anonymous? 
-                // Since requirements say "Obrigatório registrar", failing to auth means we can't register.
-                // But for resilience, let's proceed without user history if auth breaks, 
-                // OR we enforce it. Given "Obrigatório", let's assume valid users.
             }
         }
 
         const user = request.user;
         const userId = user?.id;
+
+        // 🔒 VERIFICAÇÃO DE LIMITE DE TRIAL 🔒
+        // Se usuário tem plano Pro/Premier, pula verificação
+        let hasUnlimitedAccess = false;
+        if (userId) {
+            hasUnlimitedAccess = await hasProPlan(userId);
+        }
+
+        if (!hasUnlimitedAccess) {
+            const limitStatus = await checkTrialLimit(ipAddress);
+            if (!limitStatus.canTakeQuiz) {
+                console.warn(`[Quiz] IP ${ipAddress} bloqueado por limite de trial atingido (${limitStatus.count}/${limitStatus.limit})`);
+                return reply.code(403).send({
+                    error: 'Limite de questionários gratuitos atingido. Assine o plano Pro ou Premier.',
+                    code: 'TRIAL_LIMIT_EXCEEDED'
+                });
+            }
+        }
 
         try {
             // Buscar questões de quiz EXCLUSIVAMENTE do banco de dados
@@ -197,9 +433,133 @@ export default async function quizRoutes(fastify, options) {
     });
 
     /**
-     * POST /quiz/result
-     * Submete o resultado de um quiz concluído
-     * Guarda o score na tabela user_quiz_history
+     * POST /quiz/session/start
+     * Inicia uma nova sessão de quiz para monitoramento de progresso
+     */
+    fastify.post('/quiz/session/start', async (request, reply) => {
+        const ipAddress = getClientIp(request);
+
+        // Ensure authentication runs if headers are present
+        if (request.headers.authorization && !request.user) {
+            try {
+                await authenticate(request, reply);
+            } catch (e) {
+                console.warn('[Quiz Session] Auth failed:', e.message);
+            }
+        }
+
+        const finalUserId = request.user?.id;
+        console.log(`[Quiz Session] Start request from IP: ${ipAddress}, UserID: ${finalUserId}`);
+
+        try {
+            // Verificar limites antes de criar
+            // Para usuários free, verificar trial limit (quizzes count)
+            const isPro = await hasProPlan(finalUserId);
+
+            if (!isPro) {
+                const limitStatus = await checkTrialLimit(ipAddress);
+                if (!limitStatus.canTakeQuiz) {
+                    return reply.code(403).send({ error: 'Limite de questionários atingido.' });
+                }
+            }
+
+            // Criar sessão
+            const { data, error } = await supabase
+                .from('quiz_sessions')
+                .insert({
+                    user_id: finalUserId,
+                    ip_address: ipAddress,
+                    questions_answered: 0,
+                    status: 'active'
+                })
+                .select('id')
+                .single();
+
+            if (error) {
+                // Se tabela não existir (ainda não migrada), falhar graciosamente ou logar
+                console.error('[Quiz Session] Falha ao criar sessão:', error);
+                // Fallback: retornar session_id falso para não bloquear o frontend se a tabela não existir
+                // MAS como o requisito é "Garantir", idealmente deveríamos tratar o erro. 
+                // Vamos assumir que o migration foi rodado.
+                return reply.code(500).send({ error: 'Erro ao iniciar sessão de monitoramento' });
+            }
+
+            return { success: true, sessionId: data.id };
+        } catch (e) {
+            console.error('[Quiz Session] Erro:', e);
+            return reply.code(500).send({ error: e.message });
+        }
+    });
+
+    /**
+     * POST /quiz/session/progress
+     * Verifica e incrementa o progresso. Bloqueia se atingir 5 questões no plano Free.
+     */
+    fastify.post('/quiz/session/progress', async (request, reply) => {
+        const { sessionId, answer_count } = request.body;
+
+        if (!sessionId) {
+            return reply.code(400).send({ error: 'Session ID required' });
+        }
+
+        try {
+            // Buscar sessão
+            const { data: session, error } = await supabase
+                .from('quiz_sessions')
+                .select('*')
+                .eq('id', sessionId)
+                .single();
+
+            if (error || !session) {
+                console.warn(`[Quiz Progress] Session not found: ${sessionId}`);
+                return reply.code(404).send({ error: 'Sessão não encontrada' });
+            }
+
+            const userId = session.user_id;
+            console.log(`[Quiz Progress] Session: ${sessionId}, UserID: ${userId}, Answered: ${session.questions_answered}`);
+
+            // Re-verify plan status explicitly
+            const isPro = await hasProPlan(userId);
+            console.log(`[Quiz Progress] User ${userId} isPro? ${isPro}`);
+
+            // Verificar limite
+            // Limite: 5 questões. 
+            if (!isPro && session.questions_answered >= 5) {
+                console.log(`[Quiz Progress] Blocking user ${userId} (Plan Free) at count ${session.questions_answered}`);
+                return {
+                    allowed: false,
+                    reason: 'question_limit',
+                    message: 'Limite de 5 questões atingido no plano Gratuito.'
+                };
+            }
+
+            // Incrementar
+            const { error: updateError } = await supabase
+                .from('quiz_sessions')
+                .update({
+                    questions_answered: session.questions_answered + 1,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', sessionId);
+
+            if (updateError) throw updateError;
+
+            const newCount = session.questions_answered + 1;
+
+            return {
+                allowed: isPro || newCount < 5,
+                count: newCount,
+                reason: (!isPro && newCount >= 5) ? 'question_limit' : null
+            };
+
+        } catch (e) {
+            console.error('[Quiz Session] Error:', e);
+            return reply.code(500).send({ error: e.message });
+        }
+    });
+
+    /**
+     * POST /quiz/result - MANTENHA O EXISTENTE
      */
     fastify.post('/quiz/result', async (request, reply) => {
         const { category_id, topic, score, total_questions } = request.body;
@@ -225,10 +585,8 @@ export default async function quizRoutes(fastify, options) {
         }
 
         try {
-            // Converter category_id se necessário
             const realCategoryId = await getCategoryUUID(category_id);
 
-            // Inserir o resultado na tabela de histórico
             const { error: insertError } = await supabase
                 .from('user_quiz_history')
                 .insert({
@@ -245,6 +603,9 @@ export default async function quizRoutes(fastify, options) {
                 return reply.code(500).send({ error: 'Falha ao guardar resultado do quiz' });
             }
 
+            // Fechar sessão se existir (opcional, não temos session_id aqui no body original)
+            // Mas podemos deixar aberta ou expirar por tempo.
+
             console.log(`[Quiz Result] Saved: user=${userId}, score=${score}/${total_questions}`);
             return { success: true, message: 'Resultado do quiz guardado com sucesso' };
 
@@ -256,7 +617,6 @@ export default async function quizRoutes(fastify, options) {
 
     /**
      * POST /flashcards/result
-     * Submete o resultado de uma sessão de flashcards
      */
     fastify.post('/flashcards/result', async (request, reply) => {
         const { category_id, cards_reviewed, mastered } = request.body;
@@ -282,10 +642,8 @@ export default async function quizRoutes(fastify, options) {
         }
 
         try {
-            // Converter category_id se necessário
             const realCategoryId = await getCategoryUUID(category_id);
 
-            // Inserir o resultado na tabela de histórico
             const { error: insertError } = await supabase
                 .from('user_flashcard_history')
                 .insert({

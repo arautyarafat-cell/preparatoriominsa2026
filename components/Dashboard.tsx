@@ -16,11 +16,12 @@ interface DashboardProps {
   onEnterProfile: () => void;
   onEnterTerms: () => void;
   onEnterHowItWorks: () => void;
+  onEnterKnowledgeTest: () => void;
   onLogout: () => void;
   user?: any;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, onEnterAdmin, onLogin, onEnterPricing, onEnterProfile, onEnterTerms, onEnterHowItWorks, onLogout, user }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, onEnterAdmin, onLogin, onEnterPricing, onEnterProfile, onEnterTerms, onEnterHowItWorks, onEnterKnowledgeTest, onLogout, user }) => {
   // Track if screen is large enough for chart (lg breakpoint = 1024px)
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
@@ -184,10 +185,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                 <div className="absolute inset-0 ring-1 ring-black/5 rounded-2xl pointer-events-none"></div>
               </div>
             </div>
+
+            {/* Botão Teste - Desktop */}
+            <div className="mt-4">
+              <button
+                onClick={onEnterKnowledgeTest}
+                className="w-full px-10 py-4 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center gap-3 group"
+              >
+                <span className="text-2xl group-hover:animate-bounce">🎯</span>
+                <span>Teste o seu Conhecimento</span>
+                <span className="text-xs bg-white/20 px-2 py-1 rounded-full">MINSA 2026</span>
+              </button>
+            </div>
           </div>
 
           {/* Video Card - Mobile */}
-          <div className="lg:hidden mt-10 relative">
+          <div className="lg:hidden mt-10 relative flex flex-col gap-4">
             <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 border border-white/60 shadow-xl">
               <div className="mb-4 text-center">
                 <h3 className="font-display font-bold text-slate-900 text-lg">Conheça a Plataforma</h3>
@@ -212,7 +225,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                 )}
               </div>
             </div>
+
+            {/* Botão Teste - Mobile */}
+            <button
+              onClick={onEnterKnowledgeTest}
+              className="w-full px-10 py-4 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center gap-3 group"
+            >
+              <span className="text-2xl group-hover:animate-bounce">🎯</span>
+              <span>Teste o seu Conhecimento</span>
+              <span className="text-xs bg-white/20 px-2 py-1 rounded-full">MINSA 2026</span>
+            </button>
           </div>
+
+          {/* Botão Destacado - Teste o seu Conhecimento - Abaixo do vídeo */}
+
         </div>
       </section>
 
@@ -220,7 +246,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
       <main className="max-w-7xl mx-auto px-6 lg:px-8 relative z-20">
 
         {/* KPI Cards - Floating Effect */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 -mt-10 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 -mt-4 lg:-mt-10 mb-20">
           {[
             { label: 'Questões Resolvidas', val: '+1000', icon: '✍️', color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Precisão Geral', val: '+87%', icon: '🎯', color: 'text-emerald-600', bg: 'bg-emerald-50' },

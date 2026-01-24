@@ -10,6 +10,7 @@ import QuizArea from './components/QuizArea';
 import DecipherGame from './components/DecipherGame';
 import ConnectionGame from './components/ConnectionGame';
 import CategoryHub from './components/CategoryHub';
+import KnowledgeTestArea from './components/KnowledgeTestArea';
 import AdminArea from './components/AdminArea';
 import Pricing from './components/Pricing';
 import Payment from './components/Payment';
@@ -212,6 +213,11 @@ const App: React.FC = () => {
         setViewState(ViewState.HOW_IT_WORKS);
     };
 
+    // 12. Navigation to Knowledge Test (MINSA 2026)
+    const handleEnterKnowledgeTest = () => {
+        setViewState(ViewState.KNOWLEDGE_TEST);
+    };
+
     // 12. Logout - agora usa o callback handleLogout definido acima
 
     // Navigation Handlers
@@ -259,6 +265,7 @@ const App: React.FC = () => {
                     onEnterProfile={handleEnterProfile}
                     onEnterTerms={handleEnterTerms}
                     onEnterHowItWorks={handleEnterHowItWorks}
+                    onEnterKnowledgeTest={handleEnterKnowledgeTest}
                     onLogout={handleLogout}
                     user={user}
                 />
@@ -403,6 +410,19 @@ const App: React.FC = () => {
 
             {viewState === ViewState.ADMIN && (
                 <AdminArea onBack={handleBackToDashboard} />
+            )}
+
+            {viewState === ViewState.KNOWLEDGE_TEST && (
+                <KnowledgeTestArea
+                    onExit={handleBackToDashboard}
+                    onNavigate={(page) => {
+                        if (page === 'plans') {
+                            setViewState(ViewState.PRICING);
+                        } else if (page === 'login') {
+                            setViewState(ViewState.LOGIN);
+                        }
+                    }}
+                />
             )}
         </div>
     );
