@@ -72,7 +72,7 @@ function getClientIp(request) {
 
 /**
  * Verifica se o utilizador tem plano Pro ou Premier
- * CORRIGIDO: Melhor logging e tratamento de variações do nome do plano
+ * CORRIGIDO: Verifica AMBAS as tabelas profiles E user_profiles
  */
 async function hasProPlan(userId) {
     if (!userId) {
@@ -80,33 +80,55 @@ async function hasProPlan(userId) {
         return false;
     }
 
+    const proPlans = ['pro', 'premier', 'premium', 'pro_plan', 'premium_plan', 'premier_plan'];
+
     try {
-        const { data, error } = await supabase
+        // VERIFICAÇÃO 1: Tabela user_profiles (por user_id)
+        const { data: userProfileData, error: userProfileError } = await supabase
+            .from('user_profiles')
+            .select('plan, email')
+            .eq('user_id', userId)
+            .single();
+
+        if (!userProfileError && userProfileData?.plan) {
+            const normalizedPlan = userProfileData.plan.toLowerCase().trim();
+            const isPro = proPlans.includes(normalizedPlan);
+            console.log(`[Quiz] hasProPlan: userId=${userId}, fonte=user_profiles (by user_id), plan="${userProfileData.plan}", isPro=${isPro}`);
+            if (isPro) return true;
+        }
+
+        // VERIFICAÇÃO 2: Tabela profiles (tabela original do Supabase Auth)
+        const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('plan')
+            .select('plan, email')
             .eq('id', userId)
             .single();
 
-        if (error) {
-            console.error(`[Quiz] Erro ao buscar plano do utilizador ${userId}:`, error);
-            return false;
+        if (!profileError && profileData?.plan) {
+            const normalizedPlan = profileData.plan.toLowerCase().trim();
+            const isPro = proPlans.includes(normalizedPlan);
+            console.log(`[Quiz] hasProPlan: userId=${userId}, fonte=profiles, plan="${profileData.plan}", isPro=${isPro}`);
+            if (isPro) return true;
+
+            // VERIFICAÇÃO 3: Se temos o email, verificar user_profiles por email
+            if (profileData.email) {
+                const { data: userProfileByEmail, error: emailError } = await supabase
+                    .from('user_profiles')
+                    .select('plan')
+                    .eq('email', profileData.email)
+                    .single();
+
+                if (!emailError && userProfileByEmail?.plan) {
+                    const emailNormalizedPlan = userProfileByEmail.plan.toLowerCase().trim();
+                    const isProByEmail = proPlans.includes(emailNormalizedPlan);
+                    console.log(`[Quiz] hasProPlan: userId=${userId}, fonte=user_profiles (by email: ${profileData.email}), plan="${userProfileByEmail.plan}", isPro=${isProByEmail}`);
+                    if (isProByEmail) return true;
+                }
+            }
         }
 
-        if (!data) {
-            console.log(`[Quiz] Nenhum perfil encontrado para utilizador ${userId}`);
-            return false;
-        }
-
-        const rawPlan = data.plan;
-        const normalizedPlan = rawPlan?.toLowerCase()?.trim() || '';
-
-        // Aceitar várias variações do nome do plano
-        const proPlans = ['pro', 'premier', 'premium', 'pro_plan', 'premium_plan', 'premier_plan'];
-        const isPro = proPlans.includes(normalizedPlan);
-
-        console.log(`[Quiz] hasProPlan: userId=${userId}, rawPlan="${rawPlan}", normalizedPlan="${normalizedPlan}", isPro=${isPro}`);
-
-        return isPro;
+        console.log(`[Quiz] hasProPlan: userId=${userId}, resultado final: NÃO É PRO`);
+        return false;
     } catch (e) {
         console.error('[Quiz] Erro ao verificar plano:', e);
         return false;
