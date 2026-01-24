@@ -84,20 +84,27 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('[KnowledgeTestArea] Dados de limite:', data);
-                    setTrialLimit({
-                        hasProPlan: data.hasProPlan,
-                        canTakeQuiz: data.canTakeQuiz,
-                        count: data.count,
-                        limit: data.limit,
-                        remaining: data.remaining,
-                        message: data.message,
-                        loading: false
-                    });
+                    console.log('[KnowledgeTestArea] Dados de limite recebidos:', JSON.stringify(data, null, 2));
 
-                    // Se limite atingido, mostrar modal
-                    if (!data.canTakeQuiz && !data.hasProPlan) {
+                    const newState = {
+                        hasProPlan: data.hasProPlan === true,
+                        canTakeQuiz: data.canTakeQuiz === true,
+                        count: data.count || 0,
+                        limit: data.limit || 5,
+                        remaining: data.remaining || 0,
+                        message: data.message || '',
+                        loading: false
+                    };
+
+                    console.log('[KnowledgeTestArea] Novo estado de trialLimit:', JSON.stringify(newState, null, 2));
+                    setTrialLimit(newState);
+
+                    // Se limite atingido E NÃO é Pro, mostrar modal
+                    if (!newState.canTakeQuiz && !newState.hasProPlan) {
+                        console.log('[KnowledgeTestArea] Limite atingido - mostrando modal de bloqueio');
                         setShowLimitReached(true);
+                    } else {
+                        console.log('[KnowledgeTestArea] Acesso permitido - hasProPlan:', newState.hasProPlan, 'canTakeQuiz:', newState.canTakeQuiz);
                     }
                 } else {
                     console.error('[KnowledgeTestArea] Erro ao verificar limite:', response.status);

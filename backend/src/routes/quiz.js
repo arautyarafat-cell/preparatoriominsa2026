@@ -197,25 +197,47 @@ export default async function quizRoutes(fastify, options) {
      */
     fastify.get('/trial-quiz-limit', async (request, reply) => {
         const ipAddress = getClientIp(request);
+        console.log(`[Quiz Trial] ========================================`);
         console.log(`[Quiz Trial] Verificando limite para IP: ${ipAddress}`);
+        console.log(`[Quiz Trial] Headers recebidos:`, {
+            authorization: request.headers.authorization ? 'presente' : 'ausente',
+            deviceId: request.headers['x-device-id'] ? 'presente' : 'ausente'
+        });
 
         // Verificar se há utilizador autenticado com plano Pro/Premier
         let userHasProPlan = false;
+        let userId = null;
+        let userPlan = null;
+
         if (request.headers.authorization && request.headers['x-device-id']) {
             try {
+                console.log(`[Quiz Trial] Tentando autenticar utilizador...`);
                 await authenticate(request, reply);
                 if (reply.sent) return;
 
                 if (request.user?.id) {
-                    userHasProPlan = await hasProPlan(request.user.id);
+                    userId = request.user.id;
+                    console.log(`[Quiz Trial] Utilizador autenticado: ${userId}`);
+                    userHasProPlan = await hasProPlan(userId);
+
+                    // Buscar plano para logging
+                    const { data } = await supabase.from('profiles').select('plan').eq('id', userId).single();
+                    userPlan = data?.plan;
+
+                    console.log(`[Quiz Trial] Plano do utilizador: "${userPlan}", hasProPlan: ${userHasProPlan}`);
+                } else {
+                    console.log(`[Quiz Trial] Autenticação OK mas sem user ID`);
                 }
             } catch (authErr) {
-                console.warn('[Quiz Trial] Auth check failed:', authErr);
+                console.warn('[Quiz Trial] Auth check failed:', authErr.message || authErr);
             }
+        } else {
+            console.log(`[Quiz Trial] Sem headers de autenticação - utilizador anónimo`);
         }
 
         // Utilizadores Pro/Premier não têm limite
         if (userHasProPlan) {
+            console.log(`[Quiz Trial] ✅ Utilizador ${userId} é PRO/PREMIUM - acesso ilimitado`);
             return {
                 hasProPlan: true,
                 canTakeQuiz: true,
@@ -227,9 +249,11 @@ export default async function quizRoutes(fastify, options) {
         }
 
         // Verificar limite por IP
+        console.log(`[Quiz Trial] Utilizador NÃO é Pro - verificando limite por IP`);
         const limitStatus = await checkTrialLimit(ipAddress);
+        console.log(`[Quiz Trial] Status do limite:`, limitStatus);
 
-        return {
+        const response = {
             hasProPlan: false,
             canTakeQuiz: limitStatus.canTakeQuiz,
             count: limitStatus.count,
@@ -241,6 +265,11 @@ export default async function quizRoutes(fastify, options) {
                 ? `Você tem ${limitStatus.limit - limitStatus.count} questionários gratuitos restantes`
                 : 'Limite de questionários gratuitos atingido. Assine o plano Pro ou Premier para continuar.'
         };
+
+        console.log(`[Quiz Trial] Resposta:`, response);
+        console.log(`[Quiz Trial] ========================================`);
+
+        return response;
     });
 
     /**
