@@ -416,8 +416,17 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
 
                     if (progressRes.ok) {
                         const progress = await progressRes.json();
+                        console.log('[KnowledgeTestArea] Progress response:', progress);
+
+                        // Se utilizador é Pro/Premium, atualizar estado local
+                        if (progress.isPro) {
+                            console.log('[KnowledgeTestArea] User is PRO - updating local state');
+                            setTrialLimit(prev => ({ ...prev, hasProPlan: true, canTakeQuiz: true }));
+                        }
+
+                        // BLOQUEIO PELO SERVIDOR - apenas para utilizadores gratuitos
                         if (!progress.allowed) {
-                            // BLOQUEIO PELO SERVIDOR
+                            console.log('[KnowledgeTestArea] Server blocked: ', progress.reason);
                             setBlockingReason('question_limit');
                             setShowLimitReached(true);
                             return;
@@ -425,6 +434,7 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
                     }
                 } catch (e) {
                     console.error('Falha ao sincronizar progresso:', e);
+                    // Em caso de erro, continuar (fail-open para não prejudicar utilizadores Pro)
                 }
             }
 
@@ -435,12 +445,9 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
         } else {
             // "Next" button click
             if (currentIndex < questions.length - 1) {
-                // VERIFICAÇÃO LOCAL DE BACKUP (Caso server falhe)
-                if (!trialLimit.hasProPlan && currentIndex >= 4) { // Index 4 é a 5ª questão
-                    setBlockingReason('question_limit');
-                    setShowLimitReached(true);
-                    return;
-                }
+                // NOTA: Verificação de limite é feita pelo servidor no handleAction
+                // Removida verificação local que bloqueava todos os utilizadores
+                // O servidor já verificou o plano e retornou isPro na resposta anterior
 
                 setCurrentIndex(prev => prev + 1);
                 setSelectedOption(null);

@@ -72,9 +72,13 @@ function getClientIp(request) {
 
 /**
  * Verifica se o utilizador tem plano Pro ou Premier
+ * CORRIGIDO: Melhor logging e tratamento de variações do nome do plano
  */
 async function hasProPlan(userId) {
-    if (!userId) return false;
+    if (!userId) {
+        console.log('[Quiz] hasProPlan: userId não fornecido');
+        return false;
+    }
 
     try {
         const { data, error } = await supabase
@@ -83,10 +87,26 @@ async function hasProPlan(userId) {
             .eq('id', userId)
             .single();
 
-        console.log(`[Quiz] Checking plan for user ${userId}:`, data?.plan);
+        if (error) {
+            console.error(`[Quiz] Erro ao buscar plano do utilizador ${userId}:`, error);
+            return false;
+        }
 
-        if (error || !data) return false;
-        return ['pro', 'premier', 'premium'].includes(data.plan?.toLowerCase());
+        if (!data) {
+            console.log(`[Quiz] Nenhum perfil encontrado para utilizador ${userId}`);
+            return false;
+        }
+
+        const rawPlan = data.plan;
+        const normalizedPlan = rawPlan?.toLowerCase()?.trim() || '';
+
+        // Aceitar várias variações do nome do plano
+        const proPlans = ['pro', 'premier', 'premium', 'pro_plan', 'premium_plan', 'premier_plan'];
+        const isPro = proPlans.includes(normalizedPlan);
+
+        console.log(`[Quiz] hasProPlan: userId=${userId}, rawPlan="${rawPlan}", normalizedPlan="${normalizedPlan}", isPro=${isPro}`);
+
+        return isPro;
     } catch (e) {
         console.error('[Quiz] Erro ao verificar plano:', e);
         return false;
@@ -518,22 +538,42 @@ export default async function quizRoutes(fastify, options) {
             const userId = session.user_id;
             console.log(`[Quiz Progress] Session: ${sessionId}, UserID: ${userId}, Answered: ${session.questions_answered}`);
 
-            // Re-verify plan status explicitly
+            // SEMPRE re-verificar o plano diretamente da base de dados
             const isPro = await hasProPlan(userId);
-            console.log(`[Quiz Progress] User ${userId} isPro? ${isPro}`);
+            console.log(`[Quiz Progress] User ${userId} isPro=${isPro}, questionsAnswered=${session.questions_answered}`);
 
-            // Verificar limite
-            // Limite: 5 questões. 
-            if (!isPro && session.questions_answered >= 5) {
-                console.log(`[Quiz Progress] Blocking user ${userId} (Plan Free) at count ${session.questions_answered}`);
+            // PRO/PREMIUM: SEMPRE permitir - sem limite de questões
+            if (isPro) {
+                console.log(`[Quiz Progress] ✅ User ${userId} is PRO/PREMIUM - unlimited access granted`);
+
+                // Incrementar para estatísticas, mas NÃO bloquear
+                await supabase.from('quiz_sessions')
+                    .update({
+                        questions_answered: session.questions_answered + 1,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', sessionId);
+
                 return {
-                    allowed: false,
-                    reason: 'question_limit',
-                    message: 'Limite de 5 questões atingido no plano Gratuito.'
+                    allowed: true,
+                    count: session.questions_answered + 1,
+                    isPro: true,
+                    reason: null
                 };
             }
 
-            // Incrementar
+            // PLANO GRATUITO: Verificar limite de 5 questões
+            if (session.questions_answered >= 5) {
+                console.log(`[Quiz Progress] ❌ Blocking user ${userId} (Plan Free) at count ${session.questions_answered}`);
+                return {
+                    allowed: false,
+                    reason: 'question_limit',
+                    message: 'Limite de 5 questões atingido no plano Gratuito.',
+                    isPro: false
+                };
+            }
+
+            // Incrementar contador
             const { error: updateError } = await supabase
                 .from('quiz_sessions')
                 .update({
@@ -545,11 +585,16 @@ export default async function quizRoutes(fastify, options) {
             if (updateError) throw updateError;
 
             const newCount = session.questions_answered + 1;
+            const willBlockNext = newCount >= 5;
+
+            console.log(`[Quiz Progress] User ${userId} (Free): count=${newCount}, willBlockNext=${willBlockNext}`);
 
             return {
-                allowed: isPro || newCount < 5,
+                allowed: true,
                 count: newCount,
-                reason: (!isPro && newCount >= 5) ? 'question_limit' : null
+                isPro: false,
+                reason: willBlockNext ? 'question_limit_next' : null,
+                message: willBlockNext ? 'Esta é sua última questão gratuita.' : null
             };
 
         } catch (e) {
