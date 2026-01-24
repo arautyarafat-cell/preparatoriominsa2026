@@ -142,7 +142,7 @@ async function checkTrialLimit(ipAddress) {
     try {
         const { data, error } = await supabase
             .from('trial_quiz_limits')
-            .select('quiz_count, first_quiz_at, last_quiz_at, blocked_until, is_permanently_blocked, block_reason')
+            .select('quiz_count, first_quiz_at, last_quiz_at, blocked_until, is_permanently_blocked, block_reason, last_user_id')
             .eq('ip_address', ipAddress)
             .single();
 
@@ -207,7 +207,7 @@ async function checkTrialLimit(ipAddress) {
 /**
  * Incrementa o contador de questionários para um IP
  */
-async function incrementTrialCount(ipAddress) {
+async function incrementTrialCount(ipAddress, userId = null) {
     try {
         // Tentar atualizar registro existente
         const { data: existing } = await supabase
@@ -218,27 +218,33 @@ async function incrementTrialCount(ipAddress) {
 
         if (existing) {
             // Atualizar contador existente
+            const updates = {
+                quiz_count: existing.quiz_count + 1,
+                last_quiz_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            if (userId) updates.last_user_id = userId;
+
             const { error } = await supabase
                 .from('trial_quiz_limits')
-                .update({
-                    quiz_count: existing.quiz_count + 1,
-                    last_quiz_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
+                .update(updates)
                 .eq('ip_address', ipAddress);
 
             if (error) throw error;
             return { count: existing.quiz_count + 1, success: true };
         } else {
             // Criar novo registro
+            const insertData = {
+                ip_address: ipAddress,
+                quiz_count: 1,
+                first_quiz_at: new Date().toISOString(),
+                last_quiz_at: new Date().toISOString()
+            };
+            if (userId) insertData.last_user_id = userId;
+
             const { error } = await supabase
                 .from('trial_quiz_limits')
-                .insert({
-                    ip_address: ipAddress,
-                    quiz_count: 1,
-                    first_quiz_at: new Date().toISOString(),
-                    last_quiz_at: new Date().toISOString()
-                });
+                .insert(insertData);
 
             if (error) throw error;
             return { count: 1, success: true };
@@ -367,7 +373,8 @@ export default async function quizRoutes(fastify, options) {
         }
 
         // Incrementar contador
-        const result = await incrementTrialCount(ipAddress);
+        const userId = request.user?.id;
+        const result = await incrementTrialCount(ipAddress, userId);
         const remaining = Math.max(0, TRIAL_QUIZ_LIMIT - result.count);
 
         return {

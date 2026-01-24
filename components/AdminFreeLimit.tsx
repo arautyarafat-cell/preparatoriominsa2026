@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { authService } from '../services/auth';
 import { API_URL } from '../config/api';
 
+interface UserInfo {
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    plan: string;
+}
+
 interface IPLimit {
     id: string;
     ip_address: string;
@@ -13,6 +21,8 @@ interface IPLimit {
     block_reason: string | null;
     created_at: string;
     updated_at: string;
+    last_user_id?: string;
+    user?: UserInfo;
 }
 
 export const AdminFreeLimit: React.FC = () => {
@@ -215,6 +225,7 @@ export const AdminFreeLimit: React.FC = () => {
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address</th>
+                                    <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Último Usuário</th>
                                     <th className="text-center px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Questões</th>
                                     <th className="text-center px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Primeiro Acesso</th>
                                     <th className="text-center px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Último Acesso</th>
@@ -229,6 +240,21 @@ export const AdminFreeLimit: React.FC = () => {
                                         <tr key={ip.ip_address} className={`hover:bg-slate-50 transition-colors ${blocked ? 'bg-red-50/30' : ''}`}>
                                             <td className="px-6 py-4 font-mono text-sm text-slate-700">
                                                 {ip.ip_address}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-700">
+                                                {ip.user ? (
+                                                    <div>
+                                                        <div className="font-bold">{ip.user.first_name} {ip.user.last_name}</div>
+                                                        <div className="text-xs text-slate-500">{ip.user.email}</div>
+                                                        <div className="mt-1">
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${ip.user.plan === 'pro' || ip.user.plan === 'premier' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {ip.user.plan || 'Free'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">Desconhecido</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ip.quiz_count >= 5 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'

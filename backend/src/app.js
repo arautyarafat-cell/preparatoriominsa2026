@@ -166,7 +166,8 @@ export async function buildApp() {
         return {
             status: 'ok',
             message: 'Angola Health Prep Backend API',
-            version: '1.0.0',
+            version: '1.2.0',
+            features: ['ip_blocking', 'user_tracking'],
             environment: isProduction ? 'production' : 'development'
         };
     });
@@ -202,6 +203,7 @@ export async function buildApp() {
     fastify.register(userRoutes);
     fastify.register(securityRoutes);
     fastify.register(adminLimitsRoutes);
+    fastify.log.info('Admin limits routes registered');
 
     // ============================================================
     // ERROR HANDLER GLOBAL

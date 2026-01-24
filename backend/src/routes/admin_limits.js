@@ -10,15 +10,40 @@ export default async function adminLimitsRoutes(fastify, options) {
     // GET /admin/limits/ips - List all tracked IPs
     fastify.get('/admin/limits/ips', async (request, reply) => {
         try {
-            const { data, error } = await supabase
+            // First fetch limits
+            const { data: limits, error } = await supabase
                 .from('trial_quiz_limits')
                 .select('*')
                 .order('updated_at', { ascending: false })
-                .limit(100); // Limit to last 100 active IPs for performance
+                .limit(100);
 
             if (error) throw error;
 
-            return { success: true, ips: data };
+            // Then fetch user details for those with last_user_id
+            const userIds = limits
+                .filter(l => l.last_user_id)
+                .map(l => l.last_user_id);
+
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('user_profiles')
+                    .select('user_id, first_name, last_name, email, plan')
+                    .in('user_id', userIds);
+
+                // Merge data
+                const profileMap = new Map();
+                if (profiles) {
+                    profiles.forEach(p => profileMap.set(p.user_id, p));
+                }
+
+                limits.forEach(limit => {
+                    if (limit.last_user_id && profileMap.has(limit.last_user_id)) {
+                        limit.user = profileMap.get(limit.last_user_id);
+                    }
+                });
+            }
+
+            return { success: true, ips: limits };
         } catch (error) {
             request.log.error(error);
             return reply.code(500).send({ error: 'Failed to fetch IP limits' });
