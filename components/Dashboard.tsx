@@ -210,8 +210,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                 <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Conheça a Plataforma</h3>
               </div>
 
-              {/* Video container - BORDAS 8PX (rounded-lg) e ASPECTO 1:1 */}
-              <div className="w-full relative pt-[100%] rounded-lg overflow-hidden shadow-md border border-slate-100 ring-1 ring-black/5">
+              {/* Video container - BORDAS 8PX (rounded-lg) e ASPECTO 16:9 (SEM CORTES) */}
+              <div className="w-full relative pt-[56.25%] rounded-lg overflow-hidden shadow-md border border-slate-100 ring-1 ring-black/5">
                 {featuredVideoId ? (
                   <iframe
                     className="absolute inset-0 w-full h-full"
@@ -231,17 +231,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </div>
             </div>
 
-            {/* Botão Teste - Mobile - Mantido Compacto */}
-            <button
-              onClick={onEnterKnowledgeTest}
-              className="w-full px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-lg font-bold text-sm shadow-md shadow-purple-500/20 active:scale-[0.96] transition-all duration-200 flex items-center justify-between ring-1 ring-purple-400/30 mx-3 w-[calc(100%-1.5rem)]"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-base bg-white/20 w-6 h-6 rounded-full flex items-center justify-center">🎯</span>
-                <span>Teste seu Conhecimento</span>
-              </div>
-              <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold opacity-90 tracking-wide">GRÁTIS</span>
-            </button>
+            {/* Botão Teste - Mobile - Margens Simétricas */}
+            <div className="px-3 w-full">
+              <button
+                onClick={onEnterKnowledgeTest}
+                className="w-full px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-lg font-bold text-sm shadow-md shadow-purple-500/20 active:scale-[0.96] transition-all duration-200 flex items-center justify-between ring-1 ring-purple-400/30"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base bg-white/20 w-6 h-6 rounded-full flex items-center justify-center">🎯</span>
+                  <span>Teste seu Conhecimento</span>
+                </div>
+                <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold opacity-90 tracking-wide">GRÁTIS</span>
+              </button>
+            </div>
           </div>
 
           {/* Botão Destacado - Teste o seu Conhecimento - Abaixo do vídeo */}
