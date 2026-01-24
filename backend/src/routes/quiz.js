@@ -485,12 +485,22 @@ export default async function quizRoutes(fastify, options) {
         }
 
         // Attempt Authentication to check for Pro Plan
-        if (request.headers.authorization && request.headers['x-device-id']) {
+        // Attempt Authentication to check for Pro Plan
+        const hasAuth = !!request.headers.authorization;
+        const hasDevice = !!request.headers['x-device-id'];
+
+        console.log(`[Quiz] Headers check - Auth: ${hasAuth}, DeviceID: ${hasDevice}`);
+
+        if (hasAuth && hasDevice) {
             try {
                 await authenticate(request, reply);
                 if (reply.sent) return; // Auth failed and sent response
             } catch (authErr) {
                 console.warn("[Quiz] Auth attempt failed:", authErr);
+            }
+        } else {
+            if (hasAuth && !hasDevice) {
+                console.warn("[Quiz] Auth header present but missing Device-ID - skipping auth");
             }
         }
 

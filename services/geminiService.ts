@@ -1,5 +1,6 @@
 import { GeneratedQuestion, Category, GameScenario, Flashcard, QuestionOption, MedSimCase } from "../types";
 import { API_URL } from "../config/api";
+import { getDeviceId } from "./auth";
 
 // Usar API_URL centralizado do config/api.ts
 const BACKEND_URL = API_URL;
@@ -16,7 +17,8 @@ const getHeaders = () => {
     // We should allow the caller or a context to provide this, but for now let's try to find it or use a simpler auth token key if the app sets one.
     // Based on auth.js, the login returns { session: { access_token } }. The frontend likely stores this.
     // Let's assume a generic key or check standard ones.
-    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('auth_token');
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
@@ -38,7 +40,7 @@ const getHeaders = () => {
       }
     }
 
-    const deviceId = localStorage.getItem('deviceId');
+    const deviceId = getDeviceId();
     if (deviceId) {
       headers['x-device-id'] = deviceId;
     }
