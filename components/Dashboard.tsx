@@ -202,16 +202,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </div>
           </div>
 
-          {/* Video Card - Mobile - AUMENTADO MAIS AINDA */}
+          {/* Video Card - Mobile - MAXIMIZADO */}
           <div className="lg:hidden mt-6 relative flex flex-col gap-4">
-            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-4 border border-white/70 shadow-2xl shadow-slate-200/50">
-              {/* Header do cartão - Compactado para dar espaço ao vídeo */}
-              <div className="mb-4 text-center">
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-3 border border-white/70 shadow-xl shadow-slate-200/50">
+              {/* Header do cartão - Compactado */}
+              <div className="mb-3 text-center">
                 <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Conheça a Plataforma</h3>
               </div>
 
-              {/* Video container - AINDA MAIOR (75% aspect ratio) */}
-              <div className="w-full relative pt-[75%] rounded-[2rem] overflow-hidden shadow-lg border border-slate-100 ring-1 ring-black/5">
+              {/* Video container - ASPECTO QUADRADO (1:1) PARA MÁXIMA VISIBILIDADE */}
+              <div className="w-full relative pt-[100%] rounded-2xl overflow-hidden shadow-lg border border-slate-100 ring-1 ring-black/5">
                 {featuredVideoId ? (
                   <iframe
                     className="absolute inset-0 w-full h-full"
