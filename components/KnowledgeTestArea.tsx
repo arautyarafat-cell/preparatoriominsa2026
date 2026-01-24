@@ -299,7 +299,8 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
             if (!trialLimit.hasProPlan) {
                 await fetch(`${API_URL}/trial-quiz-limit/increment`, {
                     method: 'POST',
-                    headers
+                    headers,
+                    body: JSON.stringify({})
                 }).then(r => r.json()).then(data => {
                     setTrialLimit(prev => ({
                         ...prev,
