@@ -151,11 +151,11 @@ const RATE_LIMITS = {
         message: 'Demasiadas tentativas de login. Aguarde 15 minutos.'
     },
 
-    // Endpoints de IA - proteger contra abuso e custos elevados
+    // Endpoints de IA - SEM LIMITE (configurado pelo usuário)
     ai: {
         windowMs: 60 * 60 * 1000, // 1 hora
-        maxRequests: isDevelopment ? 500 : 50, // 50 req/hora em prod (era 30)
-        message: 'Limite de uso de IA atingido. Aguarde 1 hora.'
+        maxRequests: 999999, // Praticamente sem limite
+        message: 'Limite de uso de IA atingido.'
     },
 
     // Endpoints admin - mais restritivo para proteger operações sensíveis
@@ -266,68 +266,18 @@ const aiUsageStore = new Map();
  * Limita por utilizador autenticado
  */
 export async function aiRateLimiter(request, reply) {
+    // RATE LIMITING DESATIVADO - sem limites para IA
+    // Apenas verificar autenticação
     const userId = request.user?.id;
-    const userEmail = request.user?.email;
 
     if (!userId) {
         return reply.code(401).send({ error: 'Autenticação necessária para usar funcionalidades de IA' });
     }
 
-    // Obter plano do utilizador
-    let userPlan = 'free';
-    try {
-        const { data } = await supabase
-            .from('user_profiles')
-            .select('plan')
-            .eq('email', userEmail)
-            .single();
-        if (data?.plan) {
-            userPlan = data.plan;
-        }
-    } catch (e) {
-        // Assumir free se falhar
-    }
-
-    // Limites por plano
-    const limits = {
-        free: 10,      // 10 requests IA/hora
-        lite: 30,      // 30 requests IA/hora
-        pro: 100,      // 100 requests IA/hora
-        premier: 500   // 500 requests IA/hora
-    };
-
-    const maxRequests = limits[userPlan] || limits.free;
-    const windowMs = 60 * 60 * 1000; // 1 hora
-
-    const now = Date.now();
-    let data = aiUsageStore.get(userId);
-
-    if (!data || now - data.windowStart > windowMs) {
-        data = { windowStart: now, count: 1 };
-        aiUsageStore.set(userId, data);
-    } else {
-        data.count++;
-    }
-
-    reply.header('X-AI-Limit', maxRequests);
-    reply.header('X-AI-Remaining', Math.max(0, maxRequests - data.count));
-    reply.header('X-AI-Plan', userPlan);
-
-    if (data.count > maxRequests) {
-        request.log.warn({
-            event: 'AI_RATE_LIMIT_EXCEEDED',
-            userId,
-            plan: userPlan,
-            count: data.count
-        });
-
-        return reply.code(429).send({
-            error: `Limite de IA atingido para o plano ${userPlan}. Upgrade para mais requests.`,
-            plan: userPlan,
-            limit: maxRequests,
-            retryAfter: Math.ceil((data.windowStart + windowMs - now) / 1000)
-        });
-    }
+    // Sem limites - permitir todas as requisições
+    reply.header('X-AI-Limit', 'unlimited');
+    reply.header('X-AI-Remaining', 'unlimited');
+    // Continuar sem bloquear
 }
 
 // ============================================================
