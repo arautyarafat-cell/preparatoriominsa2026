@@ -202,16 +202,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </div>
           </div>
 
-          {/* Video Card - Mobile - MAXIMIZADO */}
-          <div className="lg:hidden mt-6 relative flex flex-col gap-4">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-3 border border-white/70 shadow-xl shadow-slate-200/50">
-              {/* Header do cartão - Compactado */}
-              <div className="mb-3 text-center">
+          {/* Video Card - Mobile - BORDAS 8PX E LARGURA TOTAL */}
+          <div className="lg:hidden mt-6 relative flex flex-col gap-4 -mx-3 sm:mx-0">
+            <div className="bg-white/90 backdrop-blur-xl rounded-xl p-2 border border-white/70 shadow-xl shadow-slate-200/50">
+              {/* Header do cartão */}
+              <div className="mb-2 text-center">
                 <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Conheça a Plataforma</h3>
               </div>
 
-              {/* Video container - ASPECTO QUADRADO (1:1) PARA MÁXIMA VISIBILIDADE */}
-              <div className="w-full relative pt-[100%] rounded-2xl overflow-hidden shadow-lg border border-slate-100 ring-1 ring-black/5">
+              {/* Video container - BORDAS 8PX (rounded-lg) e ASPECTO 1:1 */}
+              <div className="w-full relative pt-[100%] rounded-lg overflow-hidden shadow-md border border-slate-100 ring-1 ring-black/5">
                 {featuredVideoId ? (
                   <iframe
                     className="absolute inset-0 w-full h-full"
@@ -231,10 +231,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </div>
             </div>
 
-            {/* Botão Teste - Mobile - ULTRA COMPACTO */}
+            {/* Botão Teste - Mobile - Mantido Compacto */}
             <button
               onClick={onEnterKnowledgeTest}
-              className="w-full px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-xl font-bold text-sm shadow-md shadow-purple-500/20 active:scale-[0.96] transition-all duration-200 flex items-center justify-between ring-1 ring-purple-400/30"
+              className="w-full px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-lg font-bold text-sm shadow-md shadow-purple-500/20 active:scale-[0.96] transition-all duration-200 flex items-center justify-between ring-1 ring-purple-400/30 mx-3 w-[calc(100%-1.5rem)]"
             >
               <div className="flex items-center gap-2">
                 <span className="text-base bg-white/20 w-6 h-6 rounded-full flex items-center justify-center">🎯</span>
