@@ -125,4 +125,118 @@ export default async function adminLimitsRoutes(fastify, options) {
             return reply.code(500).send({ error: 'Failed to unblock IP' });
         }
     });
+
+    // ===========================================
+    // USER LIMITS (NEW)
+    // ===========================================
+
+    // GET /admin/limits/users - List all tracked Users
+    fastify.get('/admin/limits/users', async (request, reply) => {
+        try {
+            // Fetch user limits
+            const { data: limits, error } = await supabase
+                .from('user_limits')
+                .select('*')
+                .order('updated_at', { ascending: false })
+                .limit(100);
+
+            if (error) throw error;
+
+            // Fetch user details
+            const userIds = limits.map(l => l.user_id);
+
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('user_profiles')
+                    .select('user_id, first_name, last_name, email, plan')
+                    .in('user_id', userIds);
+
+                const profileMap = new Map();
+                if (profiles) {
+                    profiles.forEach(p => profileMap.set(p.user_id, p));
+                }
+
+                limits.forEach(limit => {
+                    if (profileMap.has(limit.user_id)) {
+                        limit.user = profileMap.get(limit.user_id);
+                    }
+                });
+            }
+
+            return { success: true, users: limits };
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Failed to fetch User limits' });
+        }
+    });
+
+    // POST /admin/limits/users/block - Block a User
+    fastify.post('/admin/limits/users/block', async (request, reply) => {
+        const { user_id, reason, duration_minutes } = request.body;
+
+        if (!user_id) {
+            return reply.code(400).send({ error: 'User ID is required' });
+        }
+
+        try {
+            let updates = {
+                is_blocked: true,
+                block_reason: reason || 'Bloqueado pelo administrador',
+                updated_at: new Date().toISOString()
+            };
+
+            if (duration_minutes) {
+                const blockedUntil = new Date();
+                blockedUntil.setMinutes(blockedUntil.getMinutes() + parseInt(duration_minutes));
+                updates.blocked_until = blockedUntil.toISOString();
+            } else {
+                updates.blocked_until = null; // Permanent/Indefinite until manually unblocked if logic dictates
+            }
+
+            // Upsert mainly because we might want to block a user who hasn't taken a quiz yet
+            // But usually we interact with existing rows. Let's assume upsert.
+            const { data, error } = await supabase
+                .from('user_limits')
+                .upsert({ user_id, ...updates })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            return { success: true, message: `User blocked successfully`, user: data };
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Failed to block User' });
+        }
+    });
+
+    // POST /admin/limits/users/unblock - Unblock a User
+    fastify.post('/admin/limits/users/unblock', async (request, reply) => {
+        const { user_id } = request.body;
+
+        if (!user_id) {
+            return reply.code(400).send({ error: 'User ID is required' });
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('user_limits')
+                .update({
+                    is_blocked: false,
+                    blocked_until: null,
+                    block_reason: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', user_id)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            return { success: true, message: `User unblocked successfully`, user: data };
+        } catch (error) {
+            request.log.error(error);
+            return reply.code(500).send({ error: 'Failed to unblock User' });
+        }
+    });
 }
