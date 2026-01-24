@@ -199,14 +199,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </div>
           </div>
 
-          {/* Video Card - Mobile */}
-          <div className="lg:hidden mt-10 relative flex flex-col gap-4">
-            <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 border border-white/60 shadow-xl">
-              <div className="mb-4 text-center">
-                <h3 className="font-display font-bold text-slate-900 text-lg">Conheça a Plataforma</h3>
+          {/* Video Card - Mobile - AUMENTADO */}
+          <div className="lg:hidden mt-8 relative flex flex-col gap-5">
+            <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] p-5 border border-white/60 shadow-2xl">
+              {/* Header do cartão */}
+              <div className="mb-5 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 border border-sky-100/50 text-sky-700 text-[10px] font-bold uppercase tracking-wider mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                  Vídeo de Apresentação
+                </div>
+                <h3 className="font-display font-bold text-slate-900 text-xl">Conheça a Plataforma</h3>
+                <p className="text-slate-500 text-sm mt-1">Veja como funciona o Minsa Preparatório</p>
               </div>
 
-              <div className="w-full relative pt-[56.25%] rounded-xl overflow-hidden shadow-lg">
+              {/* Video container - maior */}
+              <div className="w-full relative pt-[60%] rounded-2xl overflow-hidden shadow-xl border border-slate-100">
                 {featuredVideoId ? (
                   <iframe
                     className="absolute inset-0 w-full h-full"
@@ -226,14 +233,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </div>
             </div>
 
-            {/* Botão Teste - Mobile */}
+            {/* Botão Teste - Mobile - REDUZIDO E MODERNIZADO */}
             <button
               onClick={onEnterKnowledgeTest}
-              className="w-full px-10 py-4 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center gap-3 group"
+              className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-purple-500/25 hover:shadow-purple-500/35 active:scale-[0.98] transition-all duration-300 flex items-center justify-between"
             >
-              <span className="text-2xl group-hover:animate-bounce">🎯</span>
-              <span>Teste o seu Conhecimento</span>
-              <span className="text-xs bg-white/20 px-2 py-1 rounded-full">MINSA 2026</span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🎯</span>
+                <span>Teste o seu Conhecimento</span>
+              </div>
+              <span className="text-[10px] bg-white/25 px-2.5 py-1 rounded-full font-bold">MINSA 2026</span>
             </button>
           </div>
 
