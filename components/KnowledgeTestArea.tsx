@@ -283,7 +283,8 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
 
             const sessionRes = await fetch(`${API_URL}/quiz/session/start`, {
                 method: 'POST',
-                headers
+                headers,
+                body: JSON.stringify({})
             });
 
             if (sessionRes.ok) {
