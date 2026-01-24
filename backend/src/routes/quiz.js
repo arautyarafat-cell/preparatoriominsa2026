@@ -142,22 +142,61 @@ async function checkTrialLimit(ipAddress) {
     try {
         const { data, error } = await supabase
             .from('trial_quiz_limits')
-            .select('quiz_count, first_quiz_at, last_quiz_at')
+            .select('quiz_count, first_quiz_at, last_quiz_at, blocked_until, is_permanently_blocked, block_reason')
             .eq('ip_address', ipAddress)
             .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = not found
             console.error('[Quiz Trial] Erro ao buscar limite:', error);
+            // Em caso de erro, permite por segurança (fail open) ou bloqueia?
+            // Melhor permitir padrão, mas logar erro
             return { count: 0, limit: TRIAL_QUIZ_LIMIT, canTakeQuiz: true };
         }
 
-        const count = data?.quiz_count || 0;
+        // Se não existe registro, está limpo
+        if (!data) {
+            return {
+                count: 0,
+                limit: TRIAL_QUIZ_LIMIT,
+                canTakeQuiz: true,
+                firstQuizAt: null,
+                lastQuizAt: null
+            };
+        }
+
+        // 1. Verificar Bloqueio Permanente
+        if (data.is_permanently_blocked) {
+            return {
+                count: data.quiz_count,
+                limit: TRIAL_QUIZ_LIMIT,
+                canTakeQuiz: false,
+                blocked: true,
+                reason: data.block_reason || 'Bloqueio permanente'
+            };
+        }
+
+        // 2. Verificar Bloqueio Temporário
+        if (data.blocked_until) {
+            const blockedUntil = new Date(data.blocked_until);
+            if (blockedUntil > new Date()) {
+                return {
+                    count: data.quiz_count,
+                    limit: TRIAL_QUIZ_LIMIT,
+                    canTakeQuiz: false,
+                    blocked: true,
+                    blockedUntil: blockedUntil,
+                    reason: data.block_reason || `Bloqueio temporário até ${blockedUntil.toLocaleString()}`
+                };
+            }
+        }
+
+        const count = data.quiz_count || 0;
         return {
             count,
             limit: TRIAL_QUIZ_LIMIT,
             canTakeQuiz: count < TRIAL_QUIZ_LIMIT,
-            firstQuizAt: data?.first_quiz_at,
-            lastQuizAt: data?.last_quiz_at
+            firstQuizAt: data.first_quiz_at,
+            lastQuizAt: data.last_quiz_at
         };
     } catch (e) {
         console.error('[Quiz Trial] Erro ao verificar limite:', e);

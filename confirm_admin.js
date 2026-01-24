@@ -1,48 +1,77 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * 🛠️ Script de Configuração de Admin
+ * 
+ * IMPORTANTE: Este script requer variáveis de ambiente configuradas!
+ * Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY antes de executar.
+ * 
+ * Uso: node confirm_admin.js
+ */
 
-const supabaseUrl = 'https://rgnzrcuredtbwcnnimta.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnbnpyY3VyZWR0Yndjbm5pbXRhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzU5NTA5MSwiZXhwIjoyMDgzMTcxMDkxfQ.zvjGXHMfEyPQcyrkbVGh3OFgZXsJLtPt8XkRaLCcDzE';
+import { createClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+
+// Carregar variáveis de ambiente do arquivo .env (se existir)
+config({ path: './backend/.env' });
+
+// Validar que as variáveis de ambiente existem
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('❌ ERRO: Variáveis de ambiente não configuradas!');
+    console.error('Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY');
+    console.error('');
+    console.error('Opções:');
+    console.error('1. Crie um arquivo backend/.env com as variáveis');
+    console.error('2. Exporte as variáveis no terminal antes de executar');
+    process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const fixUser = async () => {
-    const email = 'arautyarafat@gmail.com';
-    const password = 'Caquinda55';
+    // ⚠️ IMPORTANTE: Configure o email e senha desejados aqui
+    const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+    const password = process.env.ADMIN_PASSWORD;
 
-    console.log(`Fixing user ${email}...`);
+    if (!password) {
+        console.error('❌ ERRO: Configure ADMIN_PASSWORD nas variáveis de ambiente');
+        process.exit(1);
+    }
 
-    // 1. Check if user exists (even if unconfirmed)
-    // List users (requires admin)
+    console.log(`Configurando usuário ${email}...`);
+
+    // 1. Verificar se o usuário existe
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
 
     if (listError) {
-        console.error('List Users Error:', listError);
+        console.error('Erro ao listar usuários:', listError);
         return;
     }
 
     const existingUser = users.find(u => u.email === email);
 
     if (existingUser) {
-        console.log(`User found (ID: ${existingUser.id}). Status: ${existingUser.email_confirmed_at ? 'Confirmed' : 'Unconfirmed'}`);
+        console.log(`Usuário encontrado (ID: ${existingUser.id}). Status: ${existingUser.email_confirmed_at ? 'Confirmado' : 'Não confirmado'}`);
 
-        // Update user to be confirmed
+        // Atualizar usuário para confirmado
         const { data, error } = await supabase.auth.admin.updateUserById(
             existingUser.id,
             {
                 email_confirm: true,
                 user_metadata: { email_confirmed: true },
-                password: password // Reset password to ensure it matches
+                password: password
             }
         );
 
         if (error) {
-            console.error('Update Error:', error);
+            console.error('Erro ao atualizar:', error);
         } else {
-            console.log('User confirmed successfully via Admin API.');
+            console.log('✅ Usuário confirmado com sucesso via Admin API.');
         }
 
     } else {
-        console.log('User not found. Creating new confirmed user...');
+        console.log('Usuário não encontrado. Criando novo usuário confirmado...');
 
         const { data, error } = await supabase.auth.admin.createUser({
             email,
@@ -51,9 +80,9 @@ const fixUser = async () => {
         });
 
         if (error) {
-            console.error('Create Error:', error);
+            console.error('Erro ao criar:', error);
         } else {
-            console.log('User created and confirmed successfully.');
+            console.log('✅ Usuário criado e confirmado com sucesso.');
         }
     }
 };

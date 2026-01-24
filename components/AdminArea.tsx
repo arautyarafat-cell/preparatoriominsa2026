@@ -12,6 +12,7 @@ import AdminBlocking from './AdminBlocking';
 import { AdminYoutubeSettings } from './AdminYoutubeSettings';
 import { AdminTrilhas } from './AdminTrilhas';
 import { AdminSecurity } from './AdminSecurity';
+import { AdminFreeLimit } from './AdminFreeLimit';
 
 
 // Configure PDF.js worker
@@ -29,7 +30,7 @@ interface FileItem {
 }
 
 const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking' | 'youtube' | 'trilhas' | 'security'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'users' | 'settings' | 'questions' | 'lessons' | 'payments' | 'general_settings' | 'decipher' | 'contact' | 'blocking' | 'youtube' | 'trilhas' | 'security' | 'free_limit'>('upload');
 
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -853,6 +854,11 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
                                 id: 'security',
                                 label: 'Segurança',
                                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            },
+                            {
+                                id: 'free_limit',
+                                label: 'Limite Conta Gratuita',
+                                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             },
                         ].map((tab) => (
                             <button
@@ -1830,6 +1836,12 @@ const AdminArea: React.FC<AdminAreaProps> = ({ onBack }) => {
 
                     {activeTab === 'security' && (
                         <AdminSecurity />
+                    )}
+
+                    {activeTab === 'free_limit' && (
+                        <div className="bg-white/80 backdrop-blur rounded-3xl p-6 border border-white/50 shadow-sm">
+                            <AdminFreeLimit />
+                        </div>
                     )}
 
                 </main>
