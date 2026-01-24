@@ -318,21 +318,15 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
                 console.warn('[Quiz] Falha ao iniciar sessão:', sessionRes.status);
             }
 
-            // Incrementar contador de Trial (mantido para compatibilidade, mas o endpoint start já poderia fazer isso)
+            // Incrementar contador de Trial foi movido para o backend (endpoint session/start)
+            // para garantir segurança e evitar bypass no frontend.
             if (!trialLimit.hasProPlan) {
-                await fetch(`${API_URL}/trial-quiz-limit/increment`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({})
-                }).then(r => r.json()).then(data => {
-                    setTrialLimit(prev => ({
-                        ...prev,
-                        count: data.count,
-                        remaining: data.remaining,
-                        canTakeQuiz: data.canContinue,
-                        message: data.message
-                    }));
-                }).catch(e => console.error(e));
+                // Apenas atualiza o estado local para refletir o consumo que ocorrerá no servidor
+                setTrialLimit(prev => ({
+                    ...prev,
+                    count: prev.count + 1,
+                    remaining: Math.max(0, prev.remaining - 1)
+                }));
             }
 
         } catch (error) {

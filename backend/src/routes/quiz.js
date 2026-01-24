@@ -273,15 +273,27 @@ async function incrementTrialCount(ipAddress, userId = null) {
                 .single();
 
             if (existingUser) {
+                const newCount = existingUser.quiz_count + 1;
+                const shouldBlock = newCount >= TRIAL_QUIZ_LIMIT;
+
+                const updates = {
+                    quiz_count: newCount,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (shouldBlock) {
+                    updates.is_blocked = true;
+                    updates.block_reason = 'Limite de questionários gratuitos atingido (5/5)';
+                    updates.blocked_until = null; // Permanent block until upgrade
+                }
+
                 const { error } = await supabase
                     .from('user_limits')
-                    .update({
-                        quiz_count: existingUser.quiz_count + 1,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(updates)
                     .eq('user_id', userId);
+
                 if (error) throw error;
-                return { count: existingUser.quiz_count + 1, success: true };
+                return { count: newCount, success: true, blocked: shouldBlock };
             } else {
                 const { error } = await supabase
                     .from('user_limits')
@@ -290,12 +302,11 @@ async function incrementTrialCount(ipAddress, userId = null) {
                         quiz_count: 1
                     });
                 if (error) throw error;
-                return { count: 1, success: true };
+                return { count: 1, success: true, blocked: false };
             }
         }
 
         // 2. [FALLBACK] Increment IP Count (Anonymous)
-        // Tentar atualizar registro existente
         const { data: existing } = await supabase
             .from('trial_quiz_limits')
             .select('quiz_count')
@@ -303,14 +314,19 @@ async function incrementTrialCount(ipAddress, userId = null) {
             .single();
 
         if (existing) {
-            // Atualizar contador existente
+            const newCount = existing.quiz_count + 1;
+            const shouldBlock = newCount >= TRIAL_QUIZ_LIMIT;
+
             const updates = {
-                quiz_count: existing.quiz_count + 1,
+                quiz_count: newCount,
                 last_quiz_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
-            // Deprecated: userId stored here only for legacy tracking if mixed usage
-            // if (userId) updates.last_user_id = userId;
+
+            if (shouldBlock) {
+                updates.is_permanently_blocked = true;
+                updates.block_reason = 'Limite de questionários gratuitos atingido (5/5)';
+            }
 
             const { error } = await supabase
                 .from('trial_quiz_limits')
@@ -318,23 +334,19 @@ async function incrementTrialCount(ipAddress, userId = null) {
                 .eq('ip_address', ipAddress);
 
             if (error) throw error;
-            return { count: existing.quiz_count + 1, success: true };
+            return { count: newCount, success: true, blocked: shouldBlock };
         } else {
-            // Criar novo registro
-            const insertData = {
-                ip_address: ipAddress,
-                quiz_count: 1,
-                first_quiz_at: new Date().toISOString(),
-                last_quiz_at: new Date().toISOString()
-            };
-            // if (userId) insertData.last_user_id = userId;
-
             const { error } = await supabase
                 .from('trial_quiz_limits')
-                .insert(insertData);
+                .insert({
+                    ip_address: ipAddress,
+                    quiz_count: 1,
+                    first_quiz_at: new Date().toISOString(),
+                    last_quiz_at: new Date().toISOString()
+                });
 
             if (error) throw error;
-            return { count: 1, success: true };
+            return { count: 1, success: true, blocked: false };
         }
     } catch (e) {
         console.error('[Quiz Trial] Erro ao incrementar contador:', e);
@@ -675,6 +687,10 @@ export default async function quizRoutes(fastify, options) {
                 if (!limitStatus.canTakeQuiz) {
                     return reply.code(403).send({ error: 'Limite de questionários atingido.' });
                 }
+
+                // CONSUMIR 1 CRÉDITO AGORA (Strict enforcement)
+                console.log(`[Quiz Session] Consumindo crédito de trial para User ${finalUserId || 'Anon'} (IP: ${ipAddress})`);
+                await incrementTrialCount(ipAddress, finalUserId);
             }
 
             // Criar sessão
