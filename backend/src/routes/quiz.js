@@ -140,7 +140,8 @@ async function hasProPlan(userId) {
  */
 async function checkTrialLimit(ipAddress, userId = null) {
     try {
-        // 1. [NEW] Check User Limit if authenticated
+        // REGRA: Se o utilizador está logado, verificar APENAS pela conta (user_id)
+        // O IP NÃO deve ser usado como critério de bloqueio para utilizadores logados.
         if (userId) {
             const { data: userData, error: userError } = await supabase
                 .from('user_limits')
@@ -150,22 +151,23 @@ async function checkTrialLimit(ipAddress, userId = null) {
 
             if (userError && userError.code !== 'PGRST116') {
                 console.error('[Quiz Trial] Error checking user limit:', userError);
-                // Safe default
                 return { count: 0, limit: TRIAL_QUIZ_LIMIT, canTakeQuiz: true };
             }
 
             if (userData) {
-                // Check User Blocks
+                // Verificar bloqueio permanente
                 if (userData.is_blocked) {
+                    console.log(`[Quiz Trial] User ${userId} está BLOQUEADO permanentemente.`);
                     return {
                         count: userData.quiz_count,
                         limit: TRIAL_QUIZ_LIMIT,
                         canTakeQuiz: false,
                         blocked: true,
-                        reason: userData.block_reason || 'Conta bloqueada'
+                        reason: userData.block_reason || 'Atingiu o limite do plano gratuito. Faça upgrade para continuar.'
                     };
                 }
 
+                // Verificar bloqueio temporário
                 if (userData.blocked_until && new Date(userData.blocked_until) > new Date()) {
                     return {
                         count: userData.quiz_count,
@@ -177,14 +179,17 @@ async function checkTrialLimit(ipAddress, userId = null) {
                     };
                 }
 
-                // Check Count
+                // Verificar contagem
+                const canTake = userData.quiz_count < TRIAL_QUIZ_LIMIT;
+                console.log(`[Quiz Trial] User ${userId}: count=${userData.quiz_count}, canTakeQuiz=${canTake}`);
                 return {
                     count: userData.quiz_count,
                     limit: TRIAL_QUIZ_LIMIT,
-                    canTakeQuiz: userData.quiz_count < TRIAL_QUIZ_LIMIT
+                    canTakeQuiz: canTake
                 };
             } else {
-                // User has no record yet -> Empty start
+                // Utilizador não tem registo ainda -> pode começar
+                console.log(`[Quiz Trial] User ${userId}: sem registo, iniciando com 0.`);
                 return {
                     count: 0,
                     limit: TRIAL_QUIZ_LIMIT,
@@ -193,64 +198,16 @@ async function checkTrialLimit(ipAddress, userId = null) {
             }
         }
 
-        // 2. [FALLBACK] Check IP Limit if no user (Anonymous)
-        const { data, error } = await supabase
-            .from('trial_quiz_limits')
-            .select('quiz_count, first_quiz_at, last_quiz_at, blocked_until, is_permanently_blocked, block_reason, last_user_id')
-            .eq('ip_address', ipAddress)
-            .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-            console.error('[Quiz Trial] Erro ao buscar limite:', error);
-            // Em caso de erro, permite por segurança (fail open) ou bloqueia?
-            // Melhor permitir padrão, mas logar erro
-            return { count: 0, limit: TRIAL_QUIZ_LIMIT, canTakeQuiz: true };
-        }
-
-        // Se não existe registro, está limpo
-        if (!data) {
-            return {
-                count: 0,
-                limit: TRIAL_QUIZ_LIMIT,
-                canTakeQuiz: true,
-                firstQuizAt: null,
-                lastQuizAt: null
-            };
-        }
-
-        // 1. Verificar Bloqueio Permanente
-        if (data.is_permanently_blocked) {
-            return {
-                count: data.quiz_count,
-                limit: TRIAL_QUIZ_LIMIT,
-                canTakeQuiz: false,
-                blocked: true,
-                reason: data.block_reason || 'Bloqueio permanente'
-            };
-        }
-
-        // 2. Verificar Bloqueio Temporário
-        if (data.blocked_until) {
-            const blockedUntil = new Date(data.blocked_until);
-            if (blockedUntil > new Date()) {
-                return {
-                    count: data.quiz_count,
-                    limit: TRIAL_QUIZ_LIMIT,
-                    canTakeQuiz: false,
-                    blocked: true,
-                    blockedUntil: blockedUntil,
-                    reason: data.block_reason || `Bloqueio temporário até ${blockedUntil.toLocaleString()}`
-                };
-            }
-        }
-
-        const count = data.quiz_count || 0;
+        // UTILIZADOR ANÓNIMO: Bloquear quizzes para utilizadores não autenticados
+        // Conforme requisito: "O bloqueio deve ser associado à conta, não ao IP"
+        // Isso significa que utilizadores anónimos NÃO devem ter acesso.
+        console.log(`[Quiz Trial] Utilizador anónimo (IP: ${ipAddress}) - Acesso negado. Requer conta.`);
         return {
-            count,
+            count: 0,
             limit: TRIAL_QUIZ_LIMIT,
-            canTakeQuiz: count < TRIAL_QUIZ_LIMIT,
-            firstQuizAt: data.first_quiz_at,
-            lastQuizAt: data.last_quiz_at
+            canTakeQuiz: false,
+            blocked: true,
+            reason: 'É necessário criar uma conta para aceder aos questionários.'
         };
     } catch (e) {
         console.error('[Quiz Trial] Erro ao verificar limite:', e);
@@ -259,93 +216,57 @@ async function checkTrialLimit(ipAddress, userId = null) {
 }
 
 /**
- * Incrementa o contador de questionários para um IP
+ * Incrementa o contador de questionários para um utilizador LOGADO
+ * Utilizadores anónimos são rejeitados em checkTrialLimit, então não precisamos de IP fallback.
  */
 async function incrementTrialCount(ipAddress, userId = null) {
     try {
-        // 1. [NEW] Increment User Count
-        if (userId) {
-            // Check if exists
-            const { data: existingUser } = await supabase
-                .from('user_limits')
-                .select('quiz_count')
-                .eq('user_id', userId)
-                .single();
-
-            if (existingUser) {
-                const newCount = existingUser.quiz_count + 1;
-                const shouldBlock = newCount >= TRIAL_QUIZ_LIMIT;
-
-                const updates = {
-                    quiz_count: newCount,
-                    updated_at: new Date().toISOString()
-                };
-
-                if (shouldBlock) {
-                    updates.is_blocked = true;
-                    updates.block_reason = 'Limite de questionários gratuitos atingido (5/5)';
-                    updates.blocked_until = null; // Permanent block until upgrade
-                }
-
-                const { error } = await supabase
-                    .from('user_limits')
-                    .update(updates)
-                    .eq('user_id', userId);
-
-                if (error) throw error;
-                return { count: newCount, success: true, blocked: shouldBlock };
-            } else {
-                const { error } = await supabase
-                    .from('user_limits')
-                    .insert({
-                        user_id: userId,
-                        quiz_count: 1
-                    });
-                if (error) throw error;
-                return { count: 1, success: true, blocked: false };
-            }
+        // REGRA: Apenas utilizadores logados podem incrementar
+        if (!userId) {
+            console.warn('[Quiz Trial] incrementTrialCount chamado sem userId - ignorado.');
+            return { count: 0, success: false, error: 'Requer utilizador logado' };
         }
 
-        // 2. [FALLBACK] Increment IP Count (Anonymous)
-        const { data: existing } = await supabase
-            .from('trial_quiz_limits')
+        // Verificar se já existe registo
+        const { data: existingUser } = await supabase
+            .from('user_limits')
             .select('quiz_count')
-            .eq('ip_address', ipAddress)
+            .eq('user_id', userId)
             .single();
 
-        if (existing) {
-            const newCount = existing.quiz_count + 1;
+        if (existingUser) {
+            const newCount = existingUser.quiz_count + 1;
             const shouldBlock = newCount >= TRIAL_QUIZ_LIMIT;
 
             const updates = {
                 quiz_count: newCount,
-                last_quiz_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
 
             if (shouldBlock) {
-                updates.is_permanently_blocked = true;
-                updates.block_reason = 'Limite de questionários gratuitos atingido (5/5)';
+                updates.is_blocked = true;
+                updates.block_reason = 'Atingiu o limite do plano gratuito. Faça upgrade para continuar.';
+                updates.blocked_until = null; // Bloqueio permanente até upgrade
             }
 
             const { error } = await supabase
-                .from('trial_quiz_limits')
+                .from('user_limits')
                 .update(updates)
-                .eq('ip_address', ipAddress);
+                .eq('user_id', userId);
 
             if (error) throw error;
+            console.log(`[Quiz Trial] User ${userId}: count incrementado para ${newCount}, blocked=${shouldBlock}`);
             return { count: newCount, success: true, blocked: shouldBlock };
         } else {
+            // Criar novo registo
             const { error } = await supabase
-                .from('trial_quiz_limits')
+                .from('user_limits')
                 .insert({
-                    ip_address: ipAddress,
-                    quiz_count: 1,
-                    first_quiz_at: new Date().toISOString(),
-                    last_quiz_at: new Date().toISOString()
+                    user_id: userId,
+                    quiz_count: 1
                 });
-
             if (error) throw error;
+            console.log(`[Quiz Trial] User ${userId}: novo registo criado com count=1`);
             return { count: 1, success: true, blocked: false };
         }
     } catch (e) {
@@ -355,6 +276,7 @@ async function incrementTrialCount(ipAddress, userId = null) {
 }
 
 export default async function quizRoutes(fastify, options) {
+
 
     /**
      * GET /trial-quiz-limit
