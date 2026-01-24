@@ -200,6 +200,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                 <span className="text-xs bg-white/20 px-2 py-1 rounded-full">MINSA 2026</span>
               </button>
             </div>
+            {/* Botão Outros Módulos - Desktop */}
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-6 py-2 text-slate-500 hover:text-brand-600 font-medium text-sm transition-colors border border-transparent hover:border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                Abrir outros módulos de aprendizagem
+              </button>
+            </div>
           </div>
 
           {/* Video Card - Mobile - BORDAS 8PX E LARGURA TOTAL */}
@@ -242,6 +251,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
                   <span>Teste seu Conhecimento</span>
                 </div>
                 <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold opacity-90 tracking-wide">GRÁTIS</span>
+              </button>
+            </div>
+            {/* Botão Outros Módulos - Mobile */}
+            <div className="px-3 w-full mt-2 text-center">
+              <button
+                onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
+                className="w-full pym-2 text-slate-500 text-xs font-medium hover:text-brand-600 transition-colors"
+              >
+                Abrir outros módulos de aprendizagem
               </button>
             </div>
           </div>
