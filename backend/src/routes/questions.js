@@ -241,6 +241,19 @@ export default async function questionRoutes(fastify, options) {
         }
 
         try {
+            // Primeiro verificar se a questão existe
+            const { data: existingQuestion, error: checkError } = await supabase
+                .from('questions')
+                .select('id')
+                .eq('id', id);
+
+            if (checkError) throw checkError;
+
+            if (!existingQuestion || existingQuestion.length === 0) {
+                return reply.code(404).send({ error: 'Questão não encontrada. Verifique se o ID está correto.' });
+            }
+
+            // Atualizar a questão
             const { data, error } = await supabase
                 .from('questions')
                 .update({
@@ -251,11 +264,15 @@ export default async function questionRoutes(fastify, options) {
                     subject_id: subject_id || null
                 })
                 .eq('id', id)
-                .select('*, category:categories(name, icon), subject:subjects(name)')
-                .single();
+                .select('*, category:categories(name, icon), subject:subjects(name)');
 
             if (error) throw error;
-            return { success: true, data };
+
+            if (!data || data.length === 0) {
+                return reply.code(404).send({ error: 'Falha ao atualizar: questão não encontrada ou sem permissão.' });
+            }
+
+            return { success: true, data: data[0] };
         } catch (error) {
             request.log.error(error);
             return reply.code(500).send({ error: `Failed to update question: ${error.message}` });

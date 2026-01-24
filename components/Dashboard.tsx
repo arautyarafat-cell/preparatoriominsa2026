@@ -201,12 +201,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </button>
             </div>
             {/* Botão Outros Módulos - Desktop */}
-            <div className="mt-3 text-center">
+            <div className="mt-4 text-center">
               <button
                 onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-6 py-2 text-slate-500 hover:text-brand-600 font-medium text-sm transition-colors border border-transparent hover:border-slate-200 rounded-lg hover:bg-slate-50"
+                className="w-full px-6 py-3 bg-white border-2 border-slate-100 hover:border-purple-200 text-slate-600 hover:text-purple-600 font-bold text-sm rounded-xl transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2 group"
               >
-                Abrir outros módulos de aprendizagem
+                <span>Ver outros módulos</span>
+                <Icon name="arrow-right" size="sm" className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
               </button>
             </div>
           </div>
@@ -254,12 +255,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </button>
             </div>
             {/* Botão Outros Módulos - Mobile */}
-            <div className="px-3 w-full mt-2 text-center">
+            <div className="px-3 w-full mt-1 text-center">
               <button
                 onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="w-full pym-2 text-slate-500 text-xs font-medium hover:text-brand-600 transition-colors"
+                className="w-full py-3 bg-white border border-slate-200 text-slate-600 hover:text-purple-600 hover:border-purple-200 font-bold text-xs rounded-lg shadow-sm active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
               >
-                Abrir outros módulos de aprendizagem
+                <span>Ver outros módulos</span>
+                <span className="text-purple-400">➜</span>
               </button>
             </div>
           </div>
