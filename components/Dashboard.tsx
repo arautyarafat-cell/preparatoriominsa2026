@@ -202,21 +202,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </div>
           </div>
 
-          {/* Video Card - Mobile - AUMENTADO */}
-          <div className="lg:hidden mt-8 relative flex flex-col gap-5">
-            <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] p-5 border border-white/60 shadow-2xl">
-              {/* Header do cartão */}
-              <div className="mb-5 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 border border-sky-100/50 text-sky-700 text-[10px] font-bold uppercase tracking-wider mb-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                  Vídeo de Apresentação
-                </div>
-                <h3 className="font-display font-bold text-slate-900 text-xl">Conheça a Plataforma</h3>
-                <p className="text-slate-500 text-sm mt-1">Veja como funciona o Minsa Preparatório</p>
+          {/* Video Card - Mobile - AUMENTADO MAIS AINDA */}
+          <div className="lg:hidden mt-6 relative flex flex-col gap-4">
+            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-4 border border-white/70 shadow-2xl shadow-slate-200/50">
+              {/* Header do cartão - Compactado para dar espaço ao vídeo */}
+              <div className="mb-4 text-center">
+                <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Conheça a Plataforma</h3>
               </div>
 
-              {/* Video container - maior */}
-              <div className="w-full relative pt-[60%] rounded-2xl overflow-hidden shadow-xl border border-slate-100">
+              {/* Video container - AINDA MAIOR (75% aspect ratio) */}
+              <div className="w-full relative pt-[75%] rounded-[2rem] overflow-hidden shadow-lg border border-slate-100 ring-1 ring-black/5">
                 {featuredVideoId ? (
                   <iframe
                     className="absolute inset-0 w-full h-full"
@@ -236,16 +231,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               </div>
             </div>
 
-            {/* Botão Teste - Mobile - REDUZIDO E MODERNIZADO */}
+            {/* Botão Teste - Mobile - ULTRA COMPACTO */}
             <button
               onClick={onEnterKnowledgeTest}
-              className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-purple-500/25 hover:shadow-purple-500/35 active:scale-[0.98] transition-all duration-300 flex items-center justify-between"
+              className="w-full px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 hover:from-purple-700 hover:via-pink-600 hover:to-rose-600 text-white rounded-xl font-bold text-sm shadow-md shadow-purple-500/20 active:scale-[0.96] transition-all duration-200 flex items-center justify-between ring-1 ring-purple-400/30"
             >
-              <div className="flex items-center gap-2.5">
-                <span className="text-xl">🎯</span>
-                <span>Teste o seu Conhecimento</span>
+              <div className="flex items-center gap-2">
+                <span className="text-base bg-white/20 w-6 h-6 rounded-full flex items-center justify-center">🎯</span>
+                <span>Teste seu Conhecimento</span>
               </div>
-              <span className="text-[10px] bg-white/25 px-2.5 py-1 rounded-full font-bold">MINSA 2026</span>
+              <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold opacity-90 tracking-wide">GRÁTIS</span>
             </button>
           </div>
 
