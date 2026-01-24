@@ -115,39 +115,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
               Preparatório de Excelência
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-display font-extrabold text-slate-900 tracking-tight leading-[1.05]">
-              Aprovação <br className="lg:hidden" /> garantida <br />
-              <span className="text-sky-500">
-                na palma da mão.
+            {/* Title - Modernized for Mobile */}
+            <h1 className="text-[2.5rem] leading-[1.1] sm:text-5xl lg:text-7xl font-display font-extrabold text-slate-900 tracking-tight lg:leading-[1.05]">
+              Aprovação <br className="hidden sm:block lg:hidden" />Garantida <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-blue-600">
+                Na Palma da Mão.
               </span>
             </h1>
 
-            <p className="text-base lg:text-xl text-slate-500 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-              Todo o material utilizado é de origem angolana e cuidadosamente selecionado, garantindo fiabilidade. Os questionários são elaborados com base em exames anteriores, e os demais conteúdos estão alinhados ao Sistema Nacional de Saúde
+            <p className="text-sm sm:text-base lg:text-xl text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium px-2 sm:px-0">
+              Material 100% angolano, selecionado por especialistas. Questionários baseados em exames anteriores e conteúdos alinhados ao Sistema Nacional de Saúde.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            {/* Buttons - Mobile Full Width */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-4 pt-2 w-full sm:w-auto px-4 sm:px-0">
               <button
                 onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="w-full sm:w-auto px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-sky-500/20 hover:shadow-sky-500/30 hover:-translate-y-1 transition-all duration-300"
+                className="w-full sm:w-auto px-8 py-3.5 lg:px-10 lg:py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-base lg:text-lg shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 hover:-translate-y-1 active:scale-95 transition-all duration-300"
               >
                 Começar Agora
               </button>
               <button
                 onClick={onEnterHowItWorks}
-                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-500 hover:text-sky-600 rounded-2xl font-bold border border-slate-200 shadow-sm hover:border-sky-100 hover:bg-sky-50/30 transition-all duration-300"
+                className="w-full sm:w-auto px-8 py-3.5 lg:px-8 lg:py-4 bg-white/80 backdrop-blur-sm text-slate-600 hover:text-sky-600 rounded-2xl font-bold text-base lg:text-lg border border-slate-200/60 shadow-sm hover:border-sky-100 hover:bg-white transition-all duration-300 active:scale-95"
               >
                 Saiba Mais
               </button>
             </div>
 
-            <div className="pt-4 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 font-medium">
-              <span className="flex items-center gap-1">
-                <Icon name="check-circle" size="md" className="text-emerald-500" />
+            {/* Trust Badges - Smaller on mobile */}
+            <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-500 font-medium">
+              <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-slate-100">
+                <Icon name="check-circle" size="sm" className="text-emerald-500" />
                 Material Atualizado
               </span>
-              <span className="flex items-center gap-1">
-                <Icon name="check-circle" size="md" className="text-emerald-500" />
+              <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-slate-100">
+                <Icon name="check-circle" size="sm" className="text-emerald-500" />
                 IA Integrada
               </span>
             </div>
@@ -254,21 +257,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
       {/* Main Content Dashboard */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 relative z-20">
 
-        {/* KPI Cards - Floating Effect */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 -mt-4 lg:-mt-10 mb-20">
+        {/* KPI Cards - GRID 2x2 MOBILE */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 -mt-4 lg:-mt-10 mb-12 lg:mb-20">
           {[
-            { label: 'Questões Resolvidas', val: '+1000', icon: '✍️', color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Precisão Geral', val: '+87%', icon: '🎯', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Horas de Estudo', val: MOCK_STATS.hoursStudied, icon: '⏱️', color: 'text-amber-600', bg: 'bg-amber-50' },
-            { label: 'Tópicos Concluídos', val: MOCK_STATS.topicsCompleted, icon: '📚', color: 'text-purple-600', bg: 'bg-purple-50' },
+            { label: 'Questões', val: '+1000', icon: '✍️', color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Precisão', val: '+87%', icon: '🎯', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Estudo', val: MOCK_STATS.hoursStudied, icon: '⏱️', color: 'text-amber-600', bg: 'bg-amber-50' },
+            { label: 'Tópicos', val: MOCK_STATS.topicsCompleted, icon: '📚', color: 'text-purple-600', bg: 'bg-purple-50' },
           ].map((stat, i) => (
-            <div key={i} className="bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 flex items-center justify-between group cursor-default">
-              <div>
-                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-1 group-hover:text-brand-600 transition-colors">{stat.label}</p>
-                <p className="text-3xl font-display font-extrabold text-slate-800 tracking-tight">{stat.val}</p>
-              </div>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${stat.bg} ${stat.color} transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-sm ring-4 ring-white`}>
-                {stat.icon}
+            <div key={i} className="bg-white/80 backdrop-blur-md rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 flex flex-col lg:flex-row items-start lg:items-center justify-between group cursor-default h-full relative overflow-hidden">
+              {/* Decorative Gradient */}
+              <div className={`absolute -right-4 -top-4 w-12 h-12 bg-gradient-to-br from-transparent to-${stat.bg.replace('bg-', '')}/50 rounded-full blur-xl lg:hidden`} />
+
+              <div className="relative z-10 w-full">
+                <div className={`w-8 h-8 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center text-sm lg:text-2xl ${stat.bg} ${stat.color} mb-3 lg:mb-0 lg:order-2 float-right lg:float-none ring-1 ring-black/5`}>
+                  {stat.icon}
+                </div>
+                <p className="text-[10px] lg:text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-0.5 group-hover:text-brand-600 transition-colors w-full">{stat.label}</p>
+                <p className="text-xl lg:text-3xl font-display font-extrabold text-slate-800 tracking-tight">{stat.val}</p>
               </div>
             </div>
           ))}
