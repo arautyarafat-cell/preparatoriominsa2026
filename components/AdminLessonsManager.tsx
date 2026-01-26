@@ -198,17 +198,46 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
             const parsedSlides = await parsePPTX(file);
 
             // Converter para o formato de Slide
-            const newSlides: Slide[] = parsedSlides.map((s, idx) => ({
-                id: `slide-${Date.now()}-${idx}`,
-                ordem: idx + 1,
-                titulo: s.title || `Slide ${idx + 1}`,
-                conteudoPrincipal: s.content.join('\n\n') || 'Sem conteúdo de texto detectado.',
-                pontosChave: [],
-                audioScript: s.notes || `Neste slide, abordaremos ${s.title}.`, // Usa notas se disponivel, senao gera basico
-                duracaoAudioSegundos: 60,
-                conceito: s.title,
-                relevanciaProva: 'media'
-            }));
+            const newSlides: Slide[] = parsedSlides.map((s, idx) => {
+                // Formatar conteúdo como parágrafos HTML para melhor renderização
+                let contentHtml = s.content.map(p => `<p>${p}</p>`).join('');
+
+                // Injetar imagens no HTML do conteúdo
+                if (s.images && s.images.length > 0) {
+                    const imagesHtml = s.images.map(img =>
+                        `<div class="pptx-image-wrapper" style="display: flex; justify-content: center; margin: 16px 0;">
+                            <img src="${img}" alt="Imagem do slide" style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+                        </div>`
+                    ).join('');
+
+                    // Se tiver pouco texto, coloca imagem antes (layout capa/titulo). Se muito, depois.
+                    if (contentHtml.length < 200) {
+                        contentHtml = imagesHtml + contentHtml;
+                    } else {
+                        // Tenta inserir após o primeiro parágrafo se houver
+                        const firstP = contentHtml.indexOf('</p>');
+                        if (firstP !== -1) {
+                            contentHtml = contentHtml.slice(0, firstP + 4) + imagesHtml + contentHtml.slice(firstP + 4);
+                        } else {
+                            contentHtml += imagesHtml;
+                        }
+                    }
+                }
+
+                if (!contentHtml) contentHtml = '<p><em>Sem conteúdo de texto detectado.</em></p>';
+
+                return {
+                    id: `slide-${Date.now()}-${idx}`,
+                    ordem: idx + 1,
+                    titulo: s.title || `Slide ${idx + 1}`,
+                    conteudoPrincipal: contentHtml,
+                    pontosChave: [],
+                    audioScript: s.notes || `Neste slide, abordaremos ${s.title}.`,
+                    duracaoAudioSegundos: 60,
+                    conceito: s.title,
+                    relevanciaProva: 'media'
+                };
+            });
 
             if (newSlides.length === 0) {
                 alert('Nenhum slide foi detectado neste arquivo.');
