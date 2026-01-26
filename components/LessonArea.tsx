@@ -440,8 +440,8 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
 
                         {/* Slide Footer - Navigation Only (Audio Removed) */}
                         <div className="border-t border-slate-200 px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 flex items-center justify-between sm:justify-end">
-                            <span className="text-xs text-slate-500 sm:hidden">
-                                {currentSlideIndex + 1}/{lesson.slides.length}
+                            <span className="text-xs text-slate-500 font-medium sm:hidden">
+                                Slide {currentSlideIndex + 1} de {lesson.slides.length}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
@@ -469,44 +469,47 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
                     </div>
                 </div>
 
-                {/* Sidebar - Navegacao de Slides - Oculto em mobile */}
-                <div className="hidden lg:block lg:w-72 flex-shrink-0">
-                    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-lg p-4 h-full flex flex-col">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 flex-shrink-0">
-                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                            </svg>
-                            Navegação
+                {/* Sidebar - Navegacao de Slides - Estilo PowerPoint Thumbnails */}
+                <div className="hidden lg:flex lg:w-64 flex-col gap-4 flex-shrink-0 h-full overflow-hidden pb-4">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
+                        <h3 className="font-bold text-slate-700 text-xs uppercase tracking-wider mb-3 px-1">
+                            Slides
                         </h3>
 
-                        <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-1">
+                        <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-2">
                             {lesson.slides.map((slide, idx) => (
                                 <button
                                     key={slide.id}
                                     onClick={() => handleGoToSlide(idx)}
-                                    className={`w-full text-left p-3 rounded-xl transition-all ${idx === currentSlideIndex
-                                        ? 'bg-brand-50 border-2 border-brand-500 text-brand-700'
-                                        : progress.slidesCompletados.includes(slide.id)
-                                            ? 'bg-green-50 border border-green-200 text-green-700'
-                                            : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
-                                        }`}
+                                    className={`w-full group text-left transition-all ${idx === currentSlideIndex ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${idx === currentSlideIndex
-                                            ? 'bg-brand-500 text-white'
-                                            : progress.slidesCompletados.includes(slide.id)
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-slate-200 text-slate-600'
-                                            }`}>
-                                            {progress.slidesCompletados.includes(slide.id) ? (
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            ) : (
-                                                idx + 1
-                                            )}
+                                    <div className="flex gap-2">
+                                        <span className={`text-xs font-bold w-4 text-right pt-1 ${idx === currentSlideIndex ? 'text-brand-600' : 'text-slate-400'}`}>
+                                            {idx + 1}
                                         </span>
-                                        <span className="text-sm font-medium truncate">{slide.titulo}</span>
+                                        <div className={`flex-1 aspect-video rounded-lg border-2 p-2 relative bg-white overflow-hidden transition-all ${idx === currentSlideIndex
+                                                ? 'border-brand-500 shadow-md ring-2 ring-brand-200'
+                                                : 'border-slate-200 hover:border-slate-300'
+                                            }`}>
+                                            {/* Miniatura do Slide Content */}
+                                            <div className="scale-[0.25] origin-top-left w-[400%] h-[400%] absolute top-0 left-0 p-8 pointer-events-none select-none text-slate-800">
+                                                <h4 className="font-bold text-4xl mb-4 text-slate-900 border-b-2 border-slate-100 pb-2 truncate">
+                                                    {slide.titulo}
+                                                </h4>
+                                                <div className="text-2xl text-slate-600 line-clamp-4">
+                                                    {slide.conteudoPrincipal.replace(/<[^>]*>?/gm, '')}
+                                                </div>
+                                            </div>
+
+                                            {/* Status check (se completado) */}
+                                            {progress.slidesCompletados.includes(slide.id) && idx !== currentSlideIndex && (
+                                                <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
+                                                    <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
                             ))}

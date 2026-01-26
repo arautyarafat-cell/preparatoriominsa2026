@@ -12,6 +12,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { authService } from '../services/auth';
 import { API_URL } from '../config/api';
 import RichTextEditor from './RichTextEditor';
+import { parsePPTX } from '../utils/pptxParser';
 
 // ==================================================
 // INTERFACES
@@ -155,7 +156,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     const [aiTopic, setAiTopic] = useState('');
     const [aiContentBase, setAiContentBase] = useState(''); // Conteúdo base para a IA gerar aula
-    const [aiGenerationMode, setAiGenerationMode] = useState<'topic' | 'content' | 'import'>('topic');
+    const [aiGenerationMode, setAiGenerationMode] = useState<'topic' | 'content' | 'import' | 'pptx'>('topic');
     const csvImportRef = useRef<HTMLInputElement>(null);
     const [csvPasteText, setCsvPasteText] = useState(''); // CSV colado manualmente
 
@@ -179,6 +180,67 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
     const [uploadMaterialTitle, setUploadMaterialTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Estado para importação de PPTX
+    const pptxImportRef = useRef<HTMLInputElement>(null);
+    const [isProcessingPPTX, setIsProcessingPPTX] = useState(false);
+
+    // ==================================================
+    // HANDLER PPTX
+    // ==================================================
+
+    const handleImportPPTXFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsProcessingPPTX(true);
+        try {
+            const parsedSlides = await parsePPTX(file);
+
+            // Converter para o formato de Slide
+            const newSlides: Slide[] = parsedSlides.map((s, idx) => ({
+                id: `slide-${Date.now()}-${idx}`,
+                ordem: idx + 1,
+                titulo: s.title || `Slide ${idx + 1}`,
+                conteudoPrincipal: s.content.join('\n\n') || 'Sem conteúdo de texto detectado.',
+                pontosChave: [],
+                audioScript: s.notes || `Neste slide, abordaremos ${s.title}.`, // Usa notas se disponivel, senao gera basico
+                duracaoAudioSegundos: 60,
+                conceito: s.title,
+                relevanciaProva: 'media'
+            }));
+
+            if (newSlides.length === 0) {
+                alert('Nenhum slide foi detectado neste arquivo.');
+                return;
+            }
+
+            // Adicionar aos slides existentes ou substituir
+            if (slides.length > 0) {
+                if (confirm('Existem slides atuais. Clique OK para SUBSTITUIR todos ou CANCELAR para adicionar ao final.')) {
+                    setSlides(newSlides);
+                } else {
+                    setSlides(prev => [...prev, ...newSlides.map((s, i) => ({ ...s, ordem: prev.length + i + 1 }))]);
+                }
+            } else {
+                setSlides(newSlides);
+            }
+
+            // Sugerir título se vazio
+            if (!formData.titulo && file.name) {
+                setFormData(prev => ({ ...prev, titulo: file.name.replace('.pptx', '') }));
+            }
+
+            alert(`${newSlides.length} slides importados com sucesso! Note que imagens e layouts complexos não são importados, apenas textos.`);
+
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao importar PPTX: ' + (error instanceof Error ? error.message : "Erro desconhecido"));
+        } finally {
+            setIsProcessingPPTX(false);
+            if (pptxImportRef.current) pptxImportRef.current.value = '';
+        }
+    };
 
     // ==================================================
     // CARREGAR AULAS
@@ -1146,6 +1208,15 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                         >
                             Importar CSV
                         </button>
+                        <button
+                            onClick={() => setAiGenerationMode('pptx')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aiGenerationMode === 'pptx'
+                                ? 'bg-orange-600 text-white'
+                                : 'bg-white text-orange-700 hover:bg-orange-100'
+                                }`}
+                        >
+                            Importar PowerPoint
+                        </button>
                     </div>
 
                     {/* Modo: Gerar por Tema */}
@@ -1433,6 +1504,59 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                             <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600">
                                 <strong>Dica:</strong> Você pode criar o CSV no Excel/Google Sheets e exportar como CSV, ou copiar diretamente de uma planilha.
                                 O sistema detecta automaticamente se o conteúdo contém slides, quiz ou flashcards.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modo: Importar PowerPoint */}
+                    {aiGenerationMode === 'pptx' && (
+                        <div className="space-y-4">
+                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                                <h5 className="font-bold text-orange-900 flex items-center gap-2 mb-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    Importar de PowerPoint (.pptx)
+                                </h5>
+                                <p className="text-sm text-orange-800 mb-2">
+                                    O sistema irá ler o arquivo PPTX e extrair automaticamente:
+                                </p>
+                                <ul className="list-disc list-inside text-xs text-orange-700 space-y-1 ml-2 mb-4">
+                                    <li>Títulos dos slides</li>
+                                    <li>Textos e parágrafos (Conteúdo)</li>
+                                    <li>Notas do apresentador (se disponíveis) para usar como script de áudio</li>
+                                </ul>
+                                <p className="text-xs text-orange-600 italic">
+                                    Nota: Imagens e formatações complexas não são importadas. O foco é na estrutura de texto.
+                                </p>
+                            </div>
+
+                            <div className="flex justify-center p-6 border-2 border-dashed border-orange-300 rounded-xl hover:bg-orange-50 transition-colors cursor-pointer" onClick={() => pptxImportRef.current?.click()}>
+                                <input
+                                    type="file"
+                                    ref={pptxImportRef}
+                                    className="hidden"
+                                    accept=".pptx"
+                                    onChange={handleImportPPTXFile}
+                                />
+                                <div className="text-center">
+                                    {isProcessingPPTX ? (
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                            <span className="text-orange-600 font-medium">Processando arquivo...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="mx-auto w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-3">
+                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-medium text-slate-800">Clique para selecionar PPTX</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Carregar arquivo .pptx do seu computador</p>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
