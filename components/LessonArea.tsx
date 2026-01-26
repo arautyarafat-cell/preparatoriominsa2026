@@ -11,6 +11,7 @@ import {
 } from '../types/lesson';
 import ReactMarkdown from 'react-markdown';
 import DOMPurify from 'dompurify';
+import { exportToPPTX } from '../utils/pptxExporter';
 
 
 // ==================================================
@@ -369,151 +370,202 @@ const LessonArea: React.FC<LessonAreaProps> = ({ category, lesson, onBack, onCom
     // RENDER - SLIDES TAB
     // ==================================================
 
+    const handleExportPPTX = async () => {
+        try {
+            await exportToPPTX(lesson.slides.map(s => ({
+                titulo: s.titulo,
+                conteudoPrincipal: s.conteudoPrincipal,
+                pontosChave: s.pontosChave,
+                conceito: s.conceito,
+                relevanciaProva: s.relevanciaProva
+            })), {
+                titulo: lesson.titulo,
+                autor: 'Angola Saúde 2026',
+                tema: 'azul'
+            });
+            alert('Apresentação exportada com sucesso como arquivo .pptx!');
+        } catch (error) {
+            console.error('Erro ao exportar PPTX:', error);
+            alert('Erro ao exportar arquivo.');
+        }
+    };
+
     const renderSlidesTab = () => {
         if (!currentSlide) return null;
 
         return (
-            <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-6 p-3 sm:p-6 pb-20 lg:pb-6">
-                {/* Slide Principal */}
-                <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-                    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden flex-1 flex flex-col">
-                        {/* Slide Header */}
-                        <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
-                            <div className="flex items-start sm:items-center justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                    <span className="text-slate-400 text-xs sm:text-sm font-medium">
-                                        Slide {currentSlideIndex + 1} de {lesson.slides.length}
-                                    </span>
-                                    <h2 className="text-lg sm:text-2xl font-display font-bold text-white mt-1 line-clamp-2">
-                                        {currentSlide.titulo}
-                                    </h2>
-                                </div>
-                                <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase flex-shrink-0 ${currentSlide.relevanciaProva === 'alta' ? 'bg-red-500/20 text-red-300' :
-                                    currentSlide.relevanciaProva === 'media' ? 'bg-yellow-500/20 text-yellow-300' :
-                                        'bg-green-500/20 text-green-300'
-                                    }`}>
-                                    {currentSlide.relevanciaProva}
-                                </span>
-                            </div>
+            <div className="h-full flex flex-col lg:flex-row gap-0 bg-slate-200 overflow-hidden">
+                {/* Visualizacao Principal Estilo PowerPoint (16:9) */}
+                <div className="flex-1 flex flex-col min-h-0 items-center justify-center p-4 lg:p-8 relative">
+
+                    {/* Container do Slide (Proporcao 16:9 forçada) */}
+                    <div className="w-full max-w-[1280px] aspect-video bg-white shadow-2xl rounded-sm border border-slate-300 relative flex flex-col animate-fadeIn select-none transform transition-transform duration-300">
+
+                        {/* 1. Barra de Título (Estilo PPT) */}
+                        <div className="h-[12%] bg-blue-800 flex items-center px-[4%] flex-shrink-0 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-[20%] h-full bg-white/5 skew-x-12 mix-blend-overlay"></div>
+                            <h2 className="text-[2.5cqw] font-bold text-white tracking-wide relative z-10 font-sans leading-tight">
+                                {currentSlide.titulo}
+                            </h2>
                         </div>
 
-                        {/* Slide Content */}
-                        <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
-                            <div className="prose prose-sm sm:prose-lg prose-slate max-w-none mb-6 sm:mb-8">
-                                <div
-                                    className="rich-content"
-                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.conteudoPrincipal) }}
-                                />
+                        {/* 2. Barra de Separacao Colorida */}
+                        <div className="h-[1%] bg-gradient-to-r from-yellow-400 to-orange-500 w-full flex-shrink-0"></div>
+
+                        {/* 3. Area de Conteudo Principal */}
+                        <div className="flex-1 p-[4%] overflow-hidden flex flex-col relative bg-white">
+                            {/* Marca d'agua ou fundo sutil */}
+                            <div className="absolute bottom-[2%] right-[2%] text-slate-100 font-bold text-[8cqw] select-none pointer-events-none font-mono">
+                                {String(currentSlideIndex + 1).padStart(2, '0')}
                             </div>
 
-                            {/* Pontos-Chave */}
-                            <div className="grid grid-cols-1 gap-3 sm:gap-4 mt-4 sm:mt-6">
-                                {currentSlide.pontosChave.map((ponto, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/50"
-                                    >
-                                        <div className="flex items-start gap-2 sm:gap-3">
-                                            <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
-                                                {idx + 1}
-                                            </span>
-                                            <div className="min-w-0">
-                                                <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{ponto.titulo}</h4>
-                                                <p className="text-slate-600 text-xs sm:text-sm mt-1">{ponto.descricao}</p>
-                                            </div>
-                                        </div>
+                            <div className="flex-1 grid grid-cols-12 gap-[4%] h-full">
+                                {/* Coluna Esquerda: Texto Principal (7 cols) */}
+                                <div className="col-span-8 flex flex-col justify-start pr-[2%]">
+                                    <div className="prose prose-xl max-w-none text-slate-800 leading-relaxed font-sans text-[1.4cqw]" style={{ fontSize: 'clamp(1rem, 1.4cqw, 1.8rem)' }}>
+                                        <div
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.conteudoPrincipal) }}
+                                            className="font-medium"
+                                        />
                                     </div>
-                                ))}
-                            </div>
 
-                            {/* Conceito Central */}
-                            <div className="mt-4 sm:mt-8 p-4 sm:p-6 bg-brand-50 rounded-xl sm:rounded-2xl border border-brand-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span className="text-xs sm:text-sm font-bold text-brand-700 uppercase tracking-wide">Conceito Central</span>
+                                    {/* Conceito Central (Rodapé do conteudo) */}
+                                    <div className="mt-auto bg-blue-50 border-l-[6px] border-blue-600 p-[3%] rounded-r-lg shadow-sm">
+                                        <div className="flex items-center gap-2 mb-[1%]">
+                                            <span className="text-blue-700 font-bold uppercase text-[0.8cqw] tracking-wider">Conceito Chave</span>
+                                        </div>
+                                        <p className="text-blue-900 font-medium italic text-[1.2cqw]">
+                                            "{currentSlide.conceito}"
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className="text-brand-900 font-medium text-sm sm:text-base">{currentSlide.conceito}</p>
+
+                                {/* Coluna Direita: Pontos Chave (4 cols) */}
+                                <div className="col-span-4 pl-[4%] border-l-2 border-slate-100 flex flex-col gap-[3%] overflow-y-auto pr-1">
+                                    <h3 className="text-blue-700 font-bold uppercase text-[1cqw] tracking-wider mb-[2%] border-b border-blue-100 pb-[2%]">
+                                        Pontos Essenciais
+                                    </h3>
+
+                                    {currentSlide.pontosChave.map((ponto, idx) => (
+                                        <div key={idx} className="group">
+                                            <div className="flex items-baseline gap-2 mb-[1%]">
+                                                <span className="w-[0.5cqw] h-[0.5cqw] rounded-full bg-yellow-500"></span>
+                                                <h4 className="font-bold text-slate-800 text-[1.1cqw] leading-tight">{ponto.titulo}</h4>
+                                            </div>
+                                            <p className="text-slate-600 text-[0.9cqw] ml-[0.8cqw] pl-[0.8cqw] border-l border-slate-200 leading-snug">
+                                                {ponto.descricao}
+                                            </p>
+                                        </div>
+                                    ))}
+
+                                    {/* Badge de Relevancia */}
+                                    <div className="mt-auto pt-[5%] flex justify-end">
+                                        <span className={`px-[3%] py-[1%] rounded-full text-[0.8cqw] font-bold uppercase border ${currentSlide.relevanciaProva === 'alta' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                currentSlide.relevanciaProva === 'media' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                    'bg-green-50 text-green-600 border-green-200'
+                                            }`}>
+                                            Relevância: {currentSlide.relevanciaProva}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Slide Footer - Navigation Only (Audio Removed) */}
-                        <div className="border-t border-slate-200 px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 flex items-center justify-between sm:justify-end">
-                            <span className="text-xs text-slate-500 font-medium sm:hidden">
-                                Slide {currentSlideIndex + 1} de {lesson.slides.length}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handlePrevSlide}
-                                    disabled={currentSlideIndex === 0}
-                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                >
-                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-
-                                <button
-                                    onClick={handleNextSlide}
-                                    disabled={currentSlideIndex === lesson.slides.length - 1}
-                                    className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-slate-900 text-white text-sm sm:text-base font-bold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                                >
-                                    <span className="hidden sm:inline">Próximo</span>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
+                        {/* 4. Rodapé do Slide */}
+                        <div className="h-[5%] bg-slate-100 border-t border-slate-200 flex items-center justify-between px-[3%] text-[0.8cqw] text-slate-500 font-medium uppercase tracking-widest flex-shrink-0">
+                            <span>Angola Saúde 2026</span>
+                            <span>Preparatório MINSA</span>
+                            <span>{new Date().toLocaleDateString('pt-PT')}</span>
                         </div>
+                    </div>
+
+                    {/* Controles de Navegacao (Fora do Slide) */}
+                    <div className="w-full max-w-[1280px] mt-4 flex items-center justify-between px-2">
+                        <div className="text-sm font-medium text-slate-600 bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                            Slide {currentSlideIndex + 1} de {lesson.slides.length}
+                        </div>
+
+                        <div className="flex gap-3 shadow-lg rounded-xl bg-white p-1.5">
+                            <button
+                                onClick={handlePrevSlide}
+                                disabled={currentSlideIndex === 0}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+
+                            <button
+                                onClick={handleNextSlide}
+                                disabled={currentSlideIndex === lesson.slides.length - 1}
+                                className="px-6 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <span>Próximo</span>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={handleExportPPTX}
+                            className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-orange-700 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                            title="Baixar como arquivo PowerPoint (.pptx)"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Exportar PPTX
+                        </button>
                     </div>
                 </div>
 
-                {/* Sidebar - Navegacao de Slides - Estilo PowerPoint Thumbnails */}
-                <div className="hidden lg:flex lg:w-64 flex-col gap-4 flex-shrink-0 h-full overflow-hidden pb-4">
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
-                        <h3 className="font-bold text-slate-700 text-xs uppercase tracking-wider mb-3 px-1">
-                            Slides
-                        </h3>
+                {/* Sidebar Thumbnails (Estilo Sorter) */}
+                <div className="hidden lg:flex lg:w-64 flex-col bg-slate-200 border-l border-slate-300 h-full overflow-hidden shadow-2xl z-10">
+                    <div className="p-3 bg-slate-300 border-b border-slate-400 font-bold text-slate-700 text-xs uppercase flex justify-between items-center shadow-sm">
+                        <span>Miniaturas</span>
+                        <span className="bg-slate-400/30 px-2 py-0.5 rounded text-[10px] text-slate-800">{lesson.slides.length} slides</span>
+                    </div>
 
-                        <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-2">
-                            {lesson.slides.map((slide, idx) => (
-                                <button
-                                    key={slide.id}
-                                    onClick={() => handleGoToSlide(idx)}
-                                    className={`w-full group text-left transition-all ${idx === currentSlideIndex ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
-                                >
-                                    <div className="flex gap-2">
-                                        <span className={`text-xs font-bold w-4 text-right pt-1 ${idx === currentSlideIndex ? 'text-brand-600' : 'text-slate-400'}`}>
-                                            {idx + 1}
-                                        </span>
-                                        <div className={`flex-1 aspect-video rounded-lg border-2 p-2 relative bg-white overflow-hidden transition-all ${idx === currentSlideIndex
-                                                ? 'border-brand-500 shadow-md ring-2 ring-brand-200'
-                                                : 'border-slate-200 hover:border-slate-300'
-                                            }`}>
-                                            {/* Miniatura do Slide Content */}
-                                            <div className="scale-[0.25] origin-top-left w-[400%] h-[400%] absolute top-0 left-0 p-8 pointer-events-none select-none text-slate-800">
-                                                <h4 className="font-bold text-4xl mb-4 text-slate-900 border-b-2 border-slate-100 pb-2 truncate">
-                                                    {slide.titulo}
-                                                </h4>
-                                                <div className="text-2xl text-slate-600 line-clamp-4">
-                                                    {slide.conteudoPrincipal.replace(/<[^>]*>?/gm, '')}
-                                                </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-200/50">
+                        {lesson.slides.map((slide, idx) => (
+                            <div
+                                key={slide.id}
+                                onClick={() => handleGoToSlide(idx)}
+                                className={`cursor-pointer group flex gap-2 transition-all duration-200 ${idx === currentSlideIndex ? 'opacity-100 scale-105' : 'opacity-70 hover:opacity-100 hover:scale-102'}`}
+                            >
+                                <span className={`text-[10px] font-bold w-4 text-right pt-1 ${idx === currentSlideIndex ? 'text-orange-600' : 'text-slate-500'}`}>{idx + 1}</span>
+                                <div className={`flex-1 aspect-video bg-white shadow-sm group-hover:shadow-md transition-all relative overflow-hidden rounded-sm ${idx === currentSlideIndex ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-200' : 'border border-slate-400'
+                                    }`}>
+                                    {/* Mini Barra Titulo */}
+                                    <div className="h-[15%] bg-blue-800 w-full mb-[2%]"></div>
+                                    {/* Mini Conteudo (linhas simuladas) */}
+                                    <div className="px-[10%] space-y-[4%]">
+                                        <div className="h-[2px] bg-slate-800 w-[80%] mb-[4%] rounded-full opacity-50"></div>
+                                        <div className="h-[1px] bg-slate-400 w-full"></div>
+                                        <div className="h-[1px] bg-slate-400 w-[90%]"></div>
+                                        <div className="h-[1px] bg-slate-400 w-[95%]"></div>
+                                        {/* Mini Bullet Points */}
+                                        <div className="pl-[10%] space-y-[4%] mt-[5%]">
+                                            <div className="flex gap-[4%] items-center">
+                                                <div className="w-[3px] h-[3px] bg-yellow-500 rounded-full"></div>
+                                                <div className="h-[1px] bg-slate-400 w-[60%]"></div>
                                             </div>
-
-                                            {/* Status check (se completado) */}
-                                            {progress.slidesCompletados.includes(slide.id) && idx !== currentSlideIndex && (
-                                                <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
-                                                    <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </div>
-                                            )}
+                                            <div className="flex gap-[4%] items-center">
+                                                <div className="w-[3px] h-[3px] bg-yellow-500 rounded-full"></div>
+                                                <div className="h-[1px] bg-slate-400 w-[50%]"></div>
+                                            </div>
                                         </div>
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+
+                                    {/* Check de Concluido */}
+                                    {progress.slidesCompletados.includes(slide.id) && (
+                                        <div className="absolute bottom-1 right-1 bg-green-500 w-2 h-2 rounded-full border border-white shadow-sm" title="Concluído"></div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
