@@ -260,7 +260,7 @@ const AdminLessonsManager: React.FC<AdminLessonsManagerProps> = ({ categories })
                 setFormData(prev => ({ ...prev, titulo: file.name.replace('.pptx', '') }));
             }
 
-            alert(`${newSlides.length} slides importados com sucesso! Note que imagens e layouts complexos não são importados, apenas textos.`);
+            alert(`${newSlides.length} slides importados com sucesso! Imagens e textos foram extraídos.`);
 
         } catch (error) {
             console.error(error);

@@ -19,9 +19,10 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
 
         const parser = new DOMParser();
         const presentationDoc = parser.parseFromString(presentationXml, "text/xml");
-        const slideIds = Array.from(presentationDoc.getElementsByTagName("p:sldId")).map(id => {
+        const slideIdList = presentationDoc.getElementsByTagName("p:sldIdList")[0];
+        const slideIds = slideIdList ? Array.from(slideIdList.getElementsByTagName("p:sldId")).map(id => {
             return id.getAttribute("r:id");
-        });
+        }) : [];
 
         const relsXml = await content.file("ppt/_rels/presentation.xml.rels")?.async("text");
         if (!relsXml) throw new Error("Arquivo inválido: rels não encontrado");
@@ -31,7 +32,7 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
 
         const slideFiles: string[] = [];
 
-        // Mapear rId para nomes de arquivos
+        // Mapear rId para nomes de arquivos mantendo a ordem
         slideIds.forEach(rId => {
             const rel = relationships.find(r => r.getAttribute("Id") === rId);
             if (rel) {
@@ -47,8 +48,8 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
             const allFiles = Object.keys(content.files);
             const slides = allFiles.filter(f => f.match(/ppt\/slides\/slide\d+\.xml/));
             slides.sort((a, b) => {
-                const numA = parseInt(a.match(/slide(\d+)\.xml/)![1]);
-                const numB = parseInt(b.match(/slide(\d+)\.xml/)![1]);
+                const numA = parseInt(a.match(/slide(\d+)\.xml/)![1] || "0");
+                const numB = parseInt(b.match(/slide(\d+)\.xml/)![1] || "0");
                 return numA - numB;
             });
             slideFiles.push(...slides.map(s => s.replace("ppt/slides/", "")));
@@ -56,7 +57,47 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
 
         const parsedSlides: ParsedSlide[] = [];
 
-        // 2. Ler cada slide e suas imagens
+        // Função auxiliar para extrair texto de um nó e seus filhos recursivamente
+        const extractTextFromNode = (node: Element, texts: string[]) => {
+            // Se for um parágrafo (a:p)
+            if (node.tagName === "a:p") {
+                const paragraphText = Array.from(node.getElementsByTagName("a:t"))
+                    .map(t => t.textContent || "")
+                    .join("");
+                if (paragraphText.trim()) {
+                    texts.push(paragraphText);
+                }
+                return;
+            }
+
+            // Se for uma tabela (a:tbl), processar linhas e células
+            if (node.tagName === "a:tbl") {
+                const rows = Array.from(node.getElementsByTagName("a:tr"));
+                rows.forEach(row => {
+                    const cells = Array.from(row.getElementsByTagName("a:tc"));
+                    const cellTexts = cells.map(cell => {
+                        const cellParagraphs = Array.from(cell.getElementsByTagName("a:p"));
+                        return cellParagraphs.map(p =>
+                            Array.from(p.getElementsByTagName("a:t")).map(t => t.textContent || "").join("")
+                        ).join(" ").trim();
+                    });
+                    if (cellTexts.some(t => t)) {
+                        texts.push("| " + cellTexts.join(" | ") + " |"); // Formato Markdown simples para tabela
+                    }
+                });
+                return;
+            }
+
+            // Recursão para filhos (grupos, frames, etc)
+            // No XML do PPTX, o conteúdo geralmente está dentro de p:sp (shape), p:grpSp (group shape), p:graphicFrame
+            // Vamos iterar sobre os filhos diretos para manter a ordem
+            const children = Array.from(node.children);
+            for (const child of children) {
+                extractTextFromNode(child, texts);
+            }
+        };
+
+        // 2. Ler cada slide
         for (const filename of slideFiles) {
             const slideName = filename.includes('/') ? filename.split('/').pop() : filename;
             const slidePath = `ppt/slides/${slideName}`;
@@ -71,31 +112,33 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
             let title = "";
             let texts: string[] = [];
 
-            const textBodies = Array.from(slideDoc.getElementsByTagName("p:txBody"));
+            // Buscar a árvore de formas principal (p:spTree)
+            const spTree = slideDoc.getElementsByTagName("p:spTree")[0];
+            if (spTree) {
+                // Iterar sobre os elementos principais do slide
+                const elements = Array.from(spTree.children);
 
-            textBodies.forEach((txBody, index) => {
-                const paragraphs = Array.from(txBody.getElementsByTagName("a:p"));
-                const bodyText = paragraphs.map(p => {
-                    return Array.from(p.getElementsByTagName("a:t"))
-                        .map(t => t.textContent)
-                        .join("");
-                }).filter(t => t.trim()).join("\n");
+                for (const el of elements) {
+                    // Tentar identificar o título
+                    const isTitlePlaceholder = el.querySelector("p\\:nvSpPr > p\\:nvPr > p\\:ph[type='title']") ||
+                        el.querySelector("p\\:nvSpPr > p\\:nvPr > p\\:ph[type='ctrTitle']");
 
-                if (bodyText) {
-                    // Tenta identificar título pelo placeholder ou ordem
-                    // Verifica se é placeholder de titulo
-                    const isTitlePlaceholder = txBody.parentNode?.querySelector("p\\:nvSpPr > p\\:nvPr > p\\:ph[type='title']") ||
-                        txBody.parentNode?.querySelector("p\\:nvSpPr > p\\:nvPr > p\\:ph[type='ctrTitle']");
-
-                    if ((isTitlePlaceholder || (!title && index === 0)) && bodyText.length < 200) {
-                        title = bodyText;
-                    } else {
-                        texts.push(bodyText);
+                    if (isTitlePlaceholder) {
+                        const titleP = Array.from(el.getElementsByTagName("a:t")).map(t => t.textContent).join("");
+                        if (titleP && !title) {
+                            title = titleP;
+                            continue; // Não adiciona o título ao corpo do texto
+                        }
                     }
-                }
-            });
 
-            if (!title && texts.length > 0 && texts[0].length < 100) {
+                    // Extrair texto genérico
+                    extractTextFromNode(el, texts);
+                }
+            }
+
+            // Fallback para título se não achou placeholder
+            if (!title && texts.length > 0 && texts[0].length < 200) {
+                // Assume a primeira linha como título se for curta
                 title = texts[0];
                 texts = texts.slice(1);
             }
@@ -110,41 +153,30 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
                 const slideRelsDoc = parser.parseFromString(slideRelsXml, "text/xml");
                 const slideRels = Array.from(slideRelsDoc.getElementsByTagName("Relationship"));
 
-                // Encontrar r:embed ids nas tags <a:blip> (imagens) dentro do slide.xml
+                // Estratégia A: Buscar tags <a:blip> no XML do slide (imagens inseridas, backgrounds, etc)
+                // Isso pega imagens dentro de grupos, tabelas e formas
                 const blips = Array.from(slideDoc.getElementsByTagName("a:blip"));
+                const processedEmbedIds = new Set<string>();
 
                 for (const blip of blips) {
                     const embedId = blip.getAttribute("r:embed");
-                    if (embedId) {
-                        // Buscar o caminho da imagem no .rels
+                    if (embedId && !processedEmbedIds.has(embedId)) {
+                        processedEmbedIds.add(embedId);
+
                         const rel = slideRels.find(r => r.getAttribute("Id") === embedId);
                         if (rel) {
-                            let target = rel.getAttribute("Target");
-                            if (target) {
-                                // O Target geralmente é relativo, ex: "../media/image1.png"
-                                // Precisamos normalizar para o caminho dentro do zip: "ppt/media/image1.png"
-                                let imagePathInZip = "";
-                                if (target.startsWith("../")) {
-                                    imagePathInZip = "ppt/" + target.replace("../", "");
-                                } else {
-                                    imagePathInZip = "ppt/slides/" + target; // Caso raro se não estiver na pasta media padrao
-                                }
+                            await processImageRel(rel, content, images);
+                        }
+                    }
+                }
 
-                                const imgFile = content.file(imagePathInZip);
-                                if (imgFile) {
-                                    // Converter para Base64 para exibir inline
-                                    const imgData = await imgFile.async("base64");
-
-                                    // Tentar determinar extensão/mime type
-                                    const ext = imagePathInZip.split('.').pop()?.toLowerCase();
-                                    let mime = 'image/png';
-                                    if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
-                                    if (ext === 'gif') mime = 'image/gif';
-                                    if (ext === 'svg') mime = 'image/svg+xml';
-
-                                    images.push(`data:${mime};base64,${imgData}`);
-                                }
-                            }
+                // Estratégia B: Se não achou imagens via blip, mas tem relationships de imagem, tenta pegar (fallback)
+                // Útil para alguns casos onde o parser XML falha em achar o blip aninhado
+                if (images.length === 0) {
+                    const imageRels = slideRels.filter(r => r.getAttribute("Type")?.includes("image"));
+                    for (const rel of imageRels) {
+                        if (!processedEmbedIds.has(rel.getAttribute("Id")!)) {
+                            await processImageRel(rel, content, images);
                         }
                     }
                 }
@@ -165,3 +197,40 @@ export const parsePPTX = async (file: File): Promise<ParsedSlide[]> => {
         throw new Error("Falha ao processar arquivo PowerPoint. " + (error instanceof Error ? error.message : ""));
     }
 };
+
+async function processImageRel(rel: Element, content: JSZip, images: string[]) {
+    let target = rel.getAttribute("Target");
+    if (target) {
+        let imagePathInZip = "";
+        if (target.startsWith("../")) {
+            imagePathInZip = "ppt/" + target.replace("../", "");
+        } else {
+            // Caminhos relativos dentro de ppt/slides/
+            // Se target for "media/image1.png", o caminho é "ppt/slides/media/image1.png" ?
+            // Não, geralmente quando não tem ../ é relativo a ppt/slides, mas a pasta media costuma estar em ppt/media
+            // O padrão do PowerPoint é colocar em ppt/media e referenciar com ../media/
+            // Mas vamos tentar resolver
+            imagePathInZip = "ppt/slides/" + target;
+        }
+
+        // Tenta achar direto primeiro (caso target seja absoluto dentro do zip ou algo assim)
+        if (!content.file(imagePathInZip)) {
+            // Tenta corrigir common path issues
+            if (target.includes("media/")) {
+                imagePathInZip = "ppt/media/" + target.split("media/")[1];
+            }
+        }
+
+        const imgFile = content.file(imagePathInZip);
+        if (imgFile) {
+            const imgData = await imgFile.async("base64");
+            const ext = imagePathInZip.split('.').pop()?.toLowerCase();
+            let mime = 'image/png';
+            if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+            if (ext === 'gif') mime = 'image/gif';
+            if (ext === 'svg') mime = 'image/svg+xml';
+
+            images.push(`data:${mime};base64,${imgData}`);
+        }
+    }
+}
