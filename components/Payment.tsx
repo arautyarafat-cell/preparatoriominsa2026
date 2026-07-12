@@ -206,6 +206,13 @@ const Payment: React.FC<PaymentProps> = ({ onBack, planName = 'Pro', planPrice =
                                     <p className="text-sm text-slate-500 mb-6 px-4">
                                         Já recebemos o seu comprovativo e fomos notificados automaticamente. A nossa equipa irá analisar e libertar o seu acesso em instantes.
                                     </p>
+                                    <button
+                                        onClick={handleWhatsAppClick}
+                                        className="w-full mt-2 py-4 rounded-xl font-bold flex items-center justify-center gap-2 text-base transition-all bg-[#25D366] hover:bg-[#128C7E] text-white hover:shadow-lg hover:shadow-[#25D366]/25 hover:-translate-y-0.5"
+                                    >
+                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.38 0 0 5.38 0 12.031c0 2.124.551 4.195 1.6 6.007L.17 24l6.105-1.597c1.761.94 3.75 1.436 5.756 1.436 6.65 0 12.03-5.38 12.03-12.03C24.062 5.38 18.681 0 12.03 0zM12.031 21.84c-1.802 0-3.565-.483-5.111-1.396l-.367-.217-3.799.995.998-3.7-.238-.38a9.854 9.854 0 01-1.513-5.275c0-5.46 4.444-9.904 9.904-9.904 5.46 0 9.904 4.444 9.904 9.904 0 5.46-4.444 9.904-9.904 9.904zm5.412-7.44c-.297-.15-1.758-.87-2.029-.97-.271-.1-.47-.15-.668.15-.198.297-.765.97-.938 1.168-.173.198-.347.222-.644.074-.297-.15-1.254-.462-2.39-1.474-.884-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.15-.173.2-.297.297-.495.1-.198.05-.371-.025-.52-.074-.15-.668-1.61-.915-2.203-.242-.579-.487-.5-.668-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.371-.272.297-1.04 1.015-1.04 2.476 0 1.46 1.064 2.87 1.213 3.069.15.198 2.079 3.178 5.039 4.455 2.222.96 2.876.817 3.396.767.536-.05 1.758-.718 2.005-1.411.248-.693.248-1.287.173-1.411-.074-.124-.272-.198-.57-.347z"/></svg>
+                                        Avisar no WhatsApp
+                                    </button>
                                 </div>
                             ) : (
                                 <>
