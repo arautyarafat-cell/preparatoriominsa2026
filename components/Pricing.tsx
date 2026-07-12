@@ -10,35 +10,16 @@ interface PricingProps {
 const Pricing: React.FC<PricingProps> = ({ onBack, onSubscribe, headerProps }) => {
     const plans = [
         {
-            name: 'Pro',
-            price: '2.500',
-            currency: 'KZ',
-            period: '/mês',
-            description: 'A melhor escolha para ser aprovado.',
-            features: [
-                'Acesso a Todas as Trilhas',
-                'Simulados com IA',
-                'Correção de Provas Ilimitada',
-                'Tutor Virtual 24h'
-            ],
-            cta: 'Assinar Pro',
-            highlight: false,
-            recommended: false,
-            color: 'bg-gradient-to-br from-indigo-50 to-purple-50',
-            textColor: 'text-slate-900',
-            buttonColor: 'bg-slate-900 text-white hover:bg-slate-800'
-        },
-        {
             name: 'Premium',
-            price: '3.000',
+            price: '1.000',
             currency: 'KZ',
             period: '/mês',
             description: 'Experiência VIP completa.',
             features: [
-                'Tudo do Plano Pro',
-                'Mentoria Mensal',
+                'Correção de Provas Ilimitada',
+                'Aula em PPTX',
                 'Materiais Impressos (PDF)',
-                'Acesso Antecipado a Novos Jogos'
+                'Conteúdo Atualizado Diariamente'
             ],
             cta: 'Virar Premium',
             highlight: true,
