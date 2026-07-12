@@ -235,25 +235,28 @@ export const authService = {
     async fetchUserPlan(email: string) {
         try {
             const token = this.getToken();
-            const headers: Record<string, string> = {};
-
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-                headers['X-Device-ID'] = getDeviceId();
+            
+            if (!token) {
+                return { plan: 'free', plan_activated_at: null, role: 'user', is_admin: false };
             }
 
             const response = await fetch(
                 `${API_URL}/user/plan/${encodeURIComponent(email)}`,
-                { headers }
+                { 
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-Device-ID': getDeviceId()
+                    }
+                }
             );
 
             if (response.ok) {
                 return await response.json();
             }
-            return { plan: 'free', plan_activated_at: null };
+            return null;
         } catch (error) {
             console.error('Failed to fetch user plan:', error);
-            return { plan: 'free', plan_activated_at: null };
+            return null;
         }
     },
 
@@ -264,9 +267,16 @@ export const authService = {
         const user = this.getUser();
         if (user && user.email) {
             const planData = await this.fetchUserPlan(user.email);
-            const updatedUser = { ...user, plan: planData.plan };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            return updatedUser;
+            if (planData !== null) {
+                const updatedUser = { 
+                    ...user, 
+                    plan: planData.plan,
+                    role: planData.role || user.role,
+                    is_admin: planData.is_admin !== undefined ? planData.is_admin : user.is_admin
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                return updatedUser;
+            }
         }
         return user;
     },
@@ -423,7 +433,7 @@ export const authService = {
     /**
      * Verifica se a sessão está válida fazendo um request ao servidor
      */
-    async validateSession(): Promise<boolean> {
+    async validateSession(): Promise<boolean | null> {
         const token = this.getToken();
         if (!token) return false;
 
@@ -443,10 +453,16 @@ export const authService = {
                 return !!newToken;
             }
 
-            return false;
+            if (response.status === 403) {
+                // Device mismatch ou bloqueio
+                return false;
+            }
+
+            // Para outros erros (500, etc), assumimos null para não deslogar
+            return null;
         } catch (error) {
             console.error('[Auth] Session validation error:', error);
-            return false;
+            return null;
         }
     },
 
@@ -468,7 +484,7 @@ export const authService = {
     hasPremiumAccess(): boolean {
         const user = this.getUser();
         if (!user) return false;
-        return ['lite', 'pro', 'premier'].includes(user.plan);
+        return ['lite', 'pro', 'premier', 'premium'].includes(user.plan);
     },
 
     /**
@@ -479,10 +495,10 @@ export const authService = {
         if (!user) return false;
 
         // Verificar role ou email em lista de admins
-        if (user.role === 'admin') return true;
+        if (user.role === 'admin' || user.is_admin === true) return true;
 
         // Lista local de emails admin (deve corresponder ao backend)
-        const adminEmails = ['admin@angolasaude.ao'];
+        const adminEmails = ['admin@angolasaude.ao', 'arautyarafat@gmail.com'];
         return adminEmails.includes(user.email?.toLowerCase());
     },
 
@@ -601,7 +617,8 @@ export function setupSessionManager(callbacks: {
         if (document.visibilityState === 'visible' && authService.isAuthenticated()) {
             console.log('[SessionManager] Page visible, checking session...');
             const isValid = await authService.validateSession();
-            if (!isValid) {
+            // Só desloga se explicitamente false (inválido). Se null (erro de rede), mantém.
+            if (isValid === false) {
                 console.warn('[SessionManager] Session invalid after visibility change');
                 callbacks.onSessionExpired?.();
             }

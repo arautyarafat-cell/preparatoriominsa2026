@@ -116,7 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectCategory, onSelectTopic, 
             </div>
 
             {/* Title - Modernized for Mobile */}
-            <h1 className="text-[2.5rem] leading-[1.1] sm:text-5xl lg:text-7xl font-display font-extrabold text-slate-900 tracking-tight lg:leading-[1.05]">
+            <h1 className="text-[30px] leading-[1.1] sm:text-[38px] lg:text-[62px] font-display font-extrabold text-slate-900 tracking-tight lg:leading-[1.05]">
               Avalie as Suas <br className="hidden sm:block lg:hidden" />Competências <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-blue-600">
                 para o MINSA 2026

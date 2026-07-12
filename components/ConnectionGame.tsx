@@ -48,22 +48,16 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
     const [leftCards, setLeftCards] = useState<Question[]>([]);
     const [rightCards, setRightCards] = useState<Question[]>([]);
     const [usedQuestions, setUsedQuestions] = useState<Set<string>>(new Set());
-    const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
+    
+    const [connections, setConnections] = useState<Record<string, { rightId: string, status: 'correct' | 'error' }>>({});
+    const [selectedLeftCardId, setSelectedLeftCardId] = useState<string | null>(null);
 
     // UI State
     const [showStartModal, setShowStartModal] = useState(true);
     const [showLevelModal, setShowLevelModal] = useState(false);
     const [audioEnabled, setAudioEnabled] = useState(false);
-    const [shakingCards, setShakingCards] = useState<string[]>([]);
-
-    // Dragging State
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [startCardId, setStartCardId] = useState<string | null>(null);
-    const [lineCoords, setLineCoords] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
-    const [lineStatus, setLineStatus] = useState<'default' | 'success' | 'error'>('default');
 
     // Refs
-    const gameContainerRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -80,47 +74,40 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
 
     // Level Management
     const loadLevel = useCallback(() => {
-        setMatchedIds(new Set());
-        setLineCoords(null);
-        setStartCardId(null);
-        setIsDrawing(false);
+        setConnections({});
+        setSelectedLeftCardId(null);
 
-        let available = allQuestions.filter(q => !usedQuestions.has(q.id));
+        setUsedQuestions(prevUsed => {
+            let available = allQuestions.filter(q => !prevUsed.has(q.id));
+            let newUsed = new Set(prevUsed);
 
-        if (available.length < 4) {
-            // If we run out, reset used questions only for the current set 
-            // (or just re-use from pool if pool is small)
-            if (allQuestions.length >= 4) {
-                const newUsed = new Set<string>();
-                setUsedQuestions(newUsed);
-                available = allQuestions;
-            } else {
-                // Fallback if total questions < 4 (shouldn't happen with default)
-                available = allQuestions;
+            if (available.length < 4) {
+                if (allQuestions.length >= 4) {
+                    newUsed = new Set<string>();
+                    available = allQuestions;
+                } else {
+                    available = allQuestions;
+                }
             }
-        }
 
-        const shuffledAvailable = [...available].sort(() => Math.random() - 0.5);
-        const currentBatch = shuffledAvailable.slice(0, 4);
+            const shuffledAvailable = [...available].sort(() => Math.random() - 0.5);
+            const currentBatch = shuffledAvailable.slice(0, 4);
 
-        // Mark used
-        const newUsed = new Set(usedQuestions);
-        currentBatch.forEach(q => newUsed.add(q.id));
-        setUsedQuestions(newUsed);
+            currentBatch.forEach(q => newUsed.add(q.id));
+            
+            setLeftCards(currentBatch);
+            setRightCards([...currentBatch].sort(() => Math.random() - 0.5));
 
-        setLeftCards(currentBatch);
-        // Right side shuffled differently
-        setRightCards([...currentBatch].sort(() => Math.random() - 0.5));
-    }, [usedQuestions]);
+            return newUsed;
+        });
+    }, [allQuestions]);
 
     // Initialize Game Data
     useEffect(() => {
         const initGame = async () => {
             setIsLoading(true);
             try {
-                // Fetch dynamic questions
                 const questions = await fetchConnectionQuestions(category.title, category.id);
-
                 if (questions && questions.length >= 4) {
                     setAllQuestions(questions);
                 } else {
@@ -139,10 +126,12 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
     }, [category]);
 
     useEffect(() => {
-        if (!isLoading && allQuestions.length > 0 && !showStartModal && !showLevelModal) {
+        // Run loadLevel only when conditions are met and ensure it doesn't cause infinite loops
+        // since loadLevel now only depends on allQuestions.
+        if (!isLoading && allQuestions.length > 0 && !showStartModal && !showLevelModal && leftCards.length === 0) {
             loadLevel();
         }
-    }, [isLoading, allQuestions, showStartModal]);
+    }, [isLoading, allQuestions, showStartModal, showLevelModal, leftCards.length, loadLevel]);
 
 
     const handleStartGame = () => {
@@ -150,7 +139,6 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
         setLevel(1);
         setUsedQuestions(new Set());
         setShowStartModal(false);
-        // Attempt to play audio
         if (audioRef.current) {
             audioRef.current.volume = 0.3;
             audioRef.current.play().then(() => setAudioEnabled(true)).catch(() => setAudioEnabled(false));
@@ -163,132 +151,43 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
         loadLevel();
     };
 
-    // Drag Logic
-    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent, cardId: string, side: 'left' | 'right') => {
-        if (side !== 'left' || matchedIds.has(cardId)) return;
-
-        // Prevent default to stop scrolling on touch
-        // e.preventDefault(); // Might block click, be careful. For touch it's important.
-
-        const target = e.currentTarget as HTMLElement;
-        const rect = target.getBoundingClientRect();
-        const containerRect = gameContainerRef.current?.getBoundingClientRect();
-
-        if (!containerRect) return;
-
-        const startX = rect.left + rect.width / 2 - containerRect.left;
-        const startY = rect.top + rect.height / 2 - containerRect.top;
-
-        setStartCardId(cardId);
-        setLineCoords({ x1: startX, y1: startY, x2: startX, y2: startY });
-        setIsDrawing(true);
-        setLineStatus('default');
+    const handleLeftClick = (id: string) => {
+        // Se já está correto, não permite alterar
+        if (connections[id]?.status === 'correct') return;
+        
+        // Alternar seleção
+        setSelectedLeftCardId(prev => prev === id ? null : id);
     };
 
-    const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
-        if (!isDrawing || !gameContainerRef.current) return;
-        e.preventDefault(); // Stop scrolling while dragging line
+    const handleRightClick = (rightId: string) => {
+        if (!selectedLeftCardId) return;
 
-        let clientX, clientY;
-        if ('touches' in e) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = (e as MouseEvent).clientX;
-            clientY = (e as MouseEvent).clientY;
-        }
+        // Se a direita já estiver associada a uma resposta correta, não permite usar
+        const isRightCardMatched = Object.values(connections).some(c => c.rightId === rightId && c.status === 'correct');
+        if (isRightCardMatched) return;
 
-        const containerRect = gameContainerRef.current.getBoundingClientRect();
-        const relX = clientX - containerRect.left;
-        const relY = clientY - containerRect.top;
+        const isCorrect = selectedLeftCardId === rightId;
 
-        setLineCoords(prev => prev ? { ...prev, x2: relX, y2: relY } : null);
+        setConnections(prev => {
+            const newStatus: 'correct' | 'error' = isCorrect ? 'correct' : 'error';
+            const next = {
+                ...prev,
+                [selectedLeftCardId]: { rightId, status: newStatus }
+            };
 
-        // Check hover over right cards (optional visual feedback)
-        // Simplified: we will just check on MouseUp
-    }, [isDrawing]);
-
-    const handleMouseUp = useCallback((e: MouseEvent | TouchEvent) => {
-        if (!isDrawing) return;
-        setIsDrawing(false);
-
-        let clientX, clientY;
-        if ('changedTouches' in e) { // For touchend
-            clientX = (e as TouchEvent).changedTouches[0].clientX;
-            clientY = (e as TouchEvent).changedTouches[0].clientY;
-        } else {
-            clientX = (e as MouseEvent).clientX;
-            clientY = (e as MouseEvent).clientY;
-        }
-
-        // Identify target
-        const targetEl = document.elementFromPoint(clientX, clientY);
-        const targetCard = targetEl?.closest('.card') as HTMLElement;
-
-        if (targetCard && targetCard.dataset.side === 'right') {
-            const targetId = targetCard.dataset.id;
-            if (targetId === startCardId) {
-                // MATCH!
+            if (isCorrect) {
                 setScore(s => s + 100);
-                setMatchedIds(prev => {
-                    const next = new Set(prev);
-                    next.add(startCardId!);
-                    // Check level complete
-                    if (next.size === leftCards.length) { // Wait a bit then show modal
-                        setTimeout(() => fireConfetti(), 100);
-                        setTimeout(() => setShowLevelModal(true), 600);
-                    }
-                    return next;
-                });
-                setLineStatus('success');
-            } else {
-                // Mismatch
-                shakeCards(startCardId!, targetId!);
-                setLineStatus('error');
+                const correctCount = Object.values(next).filter(c => c.status === 'correct').length;
+                if (correctCount === leftCards.length) {
+                    setTimeout(() => fireConfetti(), 100);
+                    setTimeout(() => setShowLevelModal(true), 600);
+                }
             }
-        } else {
-            // Released elsewhere
-        }
 
-        // Reset line after short delay or immediately?
-        // If matched, we might want to keep a line? 
-        // The original code keeps the line if matched.
-        // But here we're rendering lines based on state.
-        // We need a persistent list of successful lines.
-        // Actually, maybe simpler: if match found, add to "completedLines" state.
+            return next;
+        });
 
-        setStartCardId(null);
-        setLineCoords(null);
-
-    }, [isDrawing, startCardId, leftCards.length]);
-
-    // Persistent lines for matched pairs
-    // We need to calculate their coords.
-    // This is tricky because positions might shift on resize.
-    // But given the layout is flex, we can re-calc or just let CSS handle "matched" state visually (green border).
-    // The original game kept lines. Let's try to keep lines using a re-render approach?
-    // Or just rely on card styling "matched" which is easier. The prompt had "matched" class.
-
-    // Add global event listeners for drag
-    useEffect(() => {
-        if (isDrawing) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            window.addEventListener('touchmove', handleMouseMove, { passive: false });
-            window.addEventListener('touchend', handleMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchmove', handleMouseMove);
-            window.removeEventListener('touchend', handleMouseUp);
-        };
-    }, [isDrawing, handleMouseMove, handleMouseUp]);
-
-
-    const shakeCards = (id1: string, id2: string) => {
-        setShakingCards([id1, id2]);
-        setTimeout(() => setShakingCards([]), 500);
+        setSelectedLeftCardId(null);
     };
 
     // Confetti
@@ -341,6 +240,12 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
         animate();
     };
 
+    const getRightCardLetter = (rightId: string) => {
+        const index = rightCards.findIndex(r => r.id === rightId);
+        if (index === -1) return '?';
+        return String.fromCharCode(65 + index); // A, B, C, D...
+    };
+
     if (isLoading) {
         return (
             <div className="connection-game-wrapper" style={{ justifyContent: 'center' }}>
@@ -369,63 +274,50 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
                 <div className="score-display">Score: <span>{score}</span></div>
             </div>
 
-            <div id="game-container" ref={gameContainerRef}>
-                <svg id="svg-layer">
-                    <defs>
-                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#4e54c8" />
-                        </marker>
-                        <marker id="arrowhead-success" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#00b09b" />
-                        </marker>
-                        <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#ff416c" />
-                        </marker>
-                    </defs>
+            <div className="game-instruction" style={{ textAlign: 'center', margin: '0 20px 15px', color: '#64748b', fontSize: '0.9rem', backgroundColor: 'rgba(255,255,255,0.6)', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                💡 <strong>Dica:</strong> Primeiro selecione a pergunta (esquerda), depois escolha a resposta correspondente (direita).
+            </div>
 
-                    {/* Render active dragging line */}
-                    {lineCoords && (
-                        <line
-                            x1={lineCoords.x1}
-                            y1={lineCoords.y1}
-                            x2={lineCoords.x2}
-                            y2={lineCoords.y2}
-                            stroke={lineStatus === 'success' ? '#00b09b' : lineStatus === 'error' ? '#ff416c' : '#4e54c8'}
-                            markerEnd={lineStatus === 'success' ? 'url(#arrowhead-success)' : lineStatus === 'error' ? 'url(#arrowhead-error)' : 'url(#arrowhead)'}
-                        />
-                    )}
-                </svg>
-
+            <div id="game-container">
                 <div className="column col-left">
-                    {leftCards.map(q => (
-                        <div
-                            key={q.id}
-                            data-id={q.id}
-                            data-side="left"
-                            className={`card ${matchedIds.has(q.id) ? 'matched' : ''} ${shakingCards.includes(q.id) ? 'shake' : ''}`}
-                        >
+                    {leftCards.map((q, index) => {
+                        const conn = connections[q.id];
+                        const statusClass = conn ? (conn.status === 'correct' ? 'matched-correct' : 'matched-error') : '';
+                        const selectedClass = selectedLeftCardId === q.id ? 'selected-left' : '';
+
+                        return (
                             <div
-                                className="connector"
-                                onMouseDown={(e) => handleMouseDown(e, q.id, 'left')}
-                                onTouchStart={(e) => handleMouseDown(e, q.id, 'left')}
-                            />
-                            <div className="card-text">{q.left}</div>
-                        </div>
-                    ))}
+                                key={q.id}
+                                className={`card letter-card left-card ${statusClass} ${selectedClass}`}
+                                onClick={() => handleLeftClick(q.id)}
+                            >
+                                <div className="card-number-badge">{index + 1}</div>
+                                <div className="card-text">{q.left}</div>
+                                <div className="card-letter-slot">
+                                    {conn ? getRightCardLetter(conn.rightId) : ''}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="column col-right">
-                    {rightCards.map(q => (
-                        <div
-                            key={q.id}
-                            data-id={q.id}
-                            data-side="right"
-                            className={`card ${matchedIds.has(q.id) ? 'matched' : ''} ${shakingCards.includes(q.id) ? 'shake' : ''}`}
-                        >
-                            <div className="connector" />
-                            <div className="card-text">{q.right}</div>
-                        </div>
-                    ))}
+                    {rightCards.map((q, index) => {
+                        const isMatched = Object.values(connections).some(c => c.rightId === q.id && c.status === 'correct');
+                        const matchedClass = isMatched ? 'matched-right' : '';
+                        const letter = String.fromCharCode(65 + index);
+
+                        return (
+                            <div
+                                key={q.id}
+                                className={`card letter-card right-card ${matchedClass}`}
+                                onClick={() => handleRightClick(q.id)}
+                            >
+                                <div className="card-letter-badge">{letter}</div>
+                                <div className="card-text">{q.right}</div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -434,7 +326,7 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
                 <div className="connection-modal">
                     <h2>JOGO DE LIGAÇÃO 🔗</h2>
                     <p>Treine seu cérebro com associações na área da saúde.</p>
-                    <p>Arraste as <strong>bolas</strong> da esquerda para conectar com as respostas da direita!</p>
+                    <p><strong>Selecione</strong> um item à esquerda e depois <strong>clique na letra</strong> da resposta correspondente à direita!</p>
                     <button className="connection-btn" onClick={handleStartGame}>Começar Agora</button>
                     <div style={{ marginTop: '10px' }}>
                         <button className="btn-text" onClick={onExit} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>Voltar</button>
@@ -453,15 +345,9 @@ const ConnectionGame: React.FC<ConnectionGameProps> = ({ category, onExit }) => 
                     </div>
                 </div>
             </div>
-
-            {/* Floating Back Button for Mobile */}
-            {!showStartModal && !showLevelModal && (
-                <button className="floating-back-btn" onClick={onExit} title="Voltar">
-                    <span className="back-icon">⬅️</span> Sair do Jogo
-                </button>
-            )}
         </div>
     );
 };
 
 export default ConnectionGame;
+

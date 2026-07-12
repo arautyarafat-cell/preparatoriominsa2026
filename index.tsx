@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './index.css';
 
 // Aplicar patch global do fetch para redirecionar URLs de localhost em produção
 import { patchGlobalFetch } from './config/api';

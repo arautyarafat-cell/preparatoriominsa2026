@@ -33,6 +33,8 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
     const [selectedCategoryId, setSelectedCategoryId] = useState<CategoryId | ''>('');
     const [selectedTopic, setSelectedTopic] = useState<string>('');
     const [selectedQuestionCount, setSelectedQuestionCount] = useState<number>(20);
+    const [showExplanations, setShowExplanations] = useState<boolean>(true);
+    const [globalExplanationsEnabled, setGlobalExplanationsEnabled] = useState<boolean>(true);
     const [availableTopics, setAvailableTopics] = useState<string[]>([]);
     const [loadingTopics, setLoadingTopics] = useState(false);
     const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
@@ -160,6 +162,23 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
             }
         };
         fetchBlocked();
+    }, []);
+
+    // Fetch global settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch(`${API_URL}/settings`);
+                const data = await res.json();
+                if (data.global_explanations_enabled === false) {
+                    setGlobalExplanationsEnabled(false);
+                    setShowExplanations(false);
+                }
+            } catch (e) {
+                console.error('Failed to fetch settings:', e);
+            }
+        };
+        fetchSettings();
     }, []);
 
     // Get available categories (not blocked)
@@ -846,6 +865,33 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
                             </p>
                         </div>
 
+                        {/* Step 4: Settings (Optional) */}
+                        {globalExplanationsEnabled && (
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-300 uppercase tracking-wider">
+                                    <span className="w-6 h-6 rounded-full bg-[#3ccfcf] text-[#0a092d] flex items-center justify-center text-xs font-bold">4</span>
+                                    Opções
+                                </label>
+                                <div className="flex items-center justify-between bg-[#0a092d] border border-slate-700 rounded-xl px-4 py-4">
+                                    <div className="text-slate-300 text-sm md:text-base font-medium flex items-center gap-2">
+                                        <span>💡</span> Mostrar explicações após cada questão
+                                    </div>
+                                    <button
+                                        onClick={() => setShowExplanations(!showExplanations)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                                            showExplanations ? 'bg-[#3ccfcf]' : 'bg-slate-600'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                showExplanations ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Action Buttons */}
                         <div className="pt-4 space-y-3">
                             <button
@@ -1132,7 +1178,7 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
                     </div>
 
                     {/* Explanation Section */}
-                    {isAnswered && (
+                    {isAnswered && showExplanations && globalExplanationsEnabled && (
                         <div className="mt-8 pt-6 border-t border-slate-600/50 animate-fade-in">
                             <h4 className="font-bold text-white mb-2 flex items-center gap-2">
                                 <span>💡</span> Explicação:
@@ -1158,7 +1204,7 @@ const KnowledgeTestArea: React.FC<KnowledgeTestAreaProps> = ({ onExit, onNavigat
 
                         {showHint && !isAnswered && (
                             <div className="text-sm text-yellow-500 italic bg-yellow-500/10 p-3 rounded-xl px-4 border border-yellow-500/20 w-full md:w-auto order-1 md:order-1">
-                                💡 Dica: {currentQuestion.dica || "Sem dica disponível."}
+                                💡 Dica: A resposta correta é a {currentQuestion.correta} - {currentQuestion.alternativas.find(a => a.letra === currentQuestion.correta)?.texto}
                             </div>
                         )}
 

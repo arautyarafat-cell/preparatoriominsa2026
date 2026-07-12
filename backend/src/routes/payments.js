@@ -175,6 +175,20 @@ export default async function paymentRoutes(fastify, options) {
                 planType
             });
 
+            // Enviar notificação via CallMeBot (se configurado)
+            if (process.env.CALLMEBOT_PHONE && process.env.CALLMEBOT_API_KEY) {
+                try {
+                    const msg = `Novo comprovativo de pagamento recebido!\nUtilizador: ${userEmail}\nPlano: ${planType}\nLink: ${fileUrl}`;
+                    const url = `https://api.callmebot.com/whatsapp.php?phone=${process.env.CALLMEBOT_PHONE}&text=${encodeURIComponent(msg)}&apikey=${process.env.CALLMEBOT_API_KEY}`;
+                    
+                    fetch(url).then(res => {
+                        if (!res.ok) console.warn('CallMeBot notification failed:', res.statusText);
+                    }).catch(err => console.error('CallMeBot fetch error:', err));
+                } catch(e) {
+                    console.error('CallMeBot error:', e);
+                }
+            }
+
             return { success: true, proof: dbData };
 
         } catch (error) {

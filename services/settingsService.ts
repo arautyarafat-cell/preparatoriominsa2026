@@ -5,7 +5,8 @@ const BACKEND_URL = API_URL;
 export interface AppSettings {
     whatsapp: string;
     email: string;
-    [key: string]: string;
+    global_explanations_enabled?: boolean;
+    [key: string]: any;
 }
 
 export const settingsService = {

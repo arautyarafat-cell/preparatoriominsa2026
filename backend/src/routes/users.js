@@ -585,16 +585,21 @@ export default async function userRoutes(fastify, options) {
                 return reply.code(400).send({ error: 'Não pode eliminar a sua própria conta' });
             }
 
-            // Eliminar do Auth
-            const { error: deleteError } = await supabase.auth.admin.deleteUser(id);
-
-            if (deleteError) throw deleteError;
-
-            // Limpar dados relacionados
+            // Limpar dados relacionados PRIMEIRO para evitar erros de Foreign Key
             await supabase.from('user_profiles').delete().eq('email', user.email);
             await supabase.from('blocked_users').delete().eq('email', user.email);
             await supabase.from('user_progress').delete().eq('user_id', id);
             await supabase.from('user_lesson_stats').delete().eq('user_id', id);
+            await supabase.from('user_quiz_history').delete().eq('user_id', id);
+            await supabase.from('user_flashcard_history').delete().eq('user_id', id);
+            await supabase.from('payment_proofs').delete().eq('user_email', user.email);
+            await supabase.from('user_limits').delete().eq('user_id', id);
+            await supabase.from('quiz_sessions').delete().eq('user_id', id);
+
+            // Só depois eliminar do Auth
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(id);
+
+            if (deleteError) throw deleteError;
 
             // Log de auditoria
             request.log.info({

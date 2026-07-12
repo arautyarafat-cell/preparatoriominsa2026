@@ -1,6 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { settingsService, AppSettings } from '../services/settingsService';
 
 export const AdminGeneralSettings: React.FC = () => {
+    const [settings, setSettings] = useState<AppSettings | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            const data = await settingsService.getSettings();
+            setSettings(data);
+        };
+        loadSettings();
+    }, []);
+
+    const handleToggleExplanations = async () => {
+        if (!settings) return;
+        
+        const newValue = settings.global_explanations_enabled === false ? true : false;
+        setSaving(true);
+        
+        const updatedSettings = { ...settings, global_explanations_enabled: newValue };
+        setSettings(updatedSettings);
+        
+        await settingsService.updateSettings({ global_explanations_enabled: newValue });
+        setSaving(false);
+    };
+
+    if (!settings) return <div className="p-8 text-center text-slate-500">A carregar definições...</div>;
+
+    const isExplanationsEnabled = settings.global_explanations_enabled !== false; // default is true se não definido
+
     return (
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden min-h-[400px]">
             <div className="p-8 border-b border-slate-100 bg-slate-50/50">
@@ -12,12 +41,34 @@ export const AdminGeneralSettings: React.FC = () => {
                 </div>
             </div>
 
-            <div className="p-8 flex flex-col items-center justify-center h-64 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <div className="p-8">
+                <div className="max-w-2xl">
+                    <h3 className="text-lg font-bold text-slate-900 mb-6">Testes e Questionários</h3>
+                    
+                    <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-6 py-5">
+                        <div className="pr-6">
+                            <div className="text-slate-900 font-medium flex items-center gap-2">
+                                <span>💡</span> Ativar Explicações Globalmente
+                            </div>
+                            <p className="text-slate-500 text-sm mt-1">
+                                Quando ativado, os utilizadores poderão ver as explicações ao final de cada questão. Se desativado, as explicações ficarão ocultas para todos os utilizadores.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleToggleExplanations}
+                            disabled={saving}
+                            className={`ml-4 relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                                isExplanationsEnabled ? 'bg-[#3ccfcf]' : 'bg-slate-300'
+                            } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                                    isExplanationsEnabled ? 'translate-x-8' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                    </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Em Desenvolvimento</h3>
-                <p className="text-slate-500 max-w-sm mt-2">Esta área será destinada a configurações gerais como notificações, aparência e integrações externas.</p>
             </div>
         </div>
     );

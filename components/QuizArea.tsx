@@ -23,6 +23,8 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
     const [selectedTopic, setSelectedTopic] = useState<string>('');
     const [loadingTopics, setLoadingTopics] = useState(true);
     const [showTopicSelection, setShowTopicSelection] = useState(true);
+    const [showExplanations, setShowExplanations] = useState(true);
+    const [globalExplanationsEnabled, setGlobalExplanationsEnabled] = useState(true);
 
     // Submit quiz results when completed
     useEffect(() => {
@@ -70,6 +72,23 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
         };
         fetchTopics();
     }, [category.id]);
+
+    // Fetch global settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch(`http://localhost:3001/settings`);
+                const data = await res.json();
+                if (data.global_explanations_enabled === false) {
+                    setGlobalExplanationsEnabled(false);
+                    setShowExplanations(false);
+                }
+            } catch (e) {
+                console.error('Failed to fetch settings:', e);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const loadQuiz = async (topicFilter?: string) => {
         setLoading(true);
@@ -175,6 +194,26 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
                                 <p className="text-amber-400 text-sm bg-amber-900/20 p-3 rounded-xl border border-amber-900/50">
                                     💡 As questões serão carregadas sem filtro.
                                 </p>
+                            )}
+
+                            {globalExplanationsEnabled && (
+                                <div className="flex items-center justify-between bg-[#0a092d] border border-slate-700 rounded-xl px-4 py-4 mt-4">
+                                    <div className="text-slate-300 text-sm font-medium flex items-center gap-2">
+                                        <span>💡</span> Mostrar explicações após cada questão
+                                    </div>
+                                    <button
+                                        onClick={() => setShowExplanations(!showExplanations)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                                            showExplanations ? 'bg-[#3ccfcf]' : 'bg-slate-600'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                showExplanations ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
                             )}
 
                             <button
@@ -385,7 +424,7 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
                     </div>
 
                     {/* Explanation Section */}
-                    {isAnswered && (
+                    {isAnswered && showExplanations && globalExplanationsEnabled && (
                         <div className="mt-8 pt-6 border-t border-slate-600/50 animate-fade-in">
                             <h4 className="font-bold text-white mb-2">Explicação:</h4>
                             <p className="text-slate-300 leading-relaxed text-sm">
@@ -409,7 +448,7 @@ const QuizArea: React.FC<QuizAreaProps> = ({ category, onExit }) => {
 
                         {showHint && !isAnswered && (
                             <div className="text-sm text-yellow-500 italic bg-yellow-500/10 p-2 rounded px-4 ml-auto border border-yellow-500/20">
-                                💡 Dica: {currentQuestion.dica || "Sem dica disponível."}
+                                💡 Dica: A resposta correta é a {currentQuestion.correta} - {currentQuestion.alternativas.find(a => a.letra === currentQuestion.correta)?.texto}
                             </div>
                         )}
 

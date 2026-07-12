@@ -18,6 +18,7 @@ export const AdminUsers: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<string>('free');
+    const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
 
     // Create User State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -185,6 +186,53 @@ export const AdminUsers: React.FC = () => {
         }
     };
 
+    const handleToggleSelectUser = (user: User) => {
+        setSelectedUsers(prev => 
+            prev.some(u => u.id === user.id)
+                ? prev.filter(u => u.id !== user.id)
+                : [...prev, user]
+        );
+    };
+
+    const handleToggleSelectAll = () => {
+        if (selectedUsers.length === users.length && users.length > 0) {
+            setSelectedUsers([]);
+        } else {
+            setSelectedUsers([...users]);
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (!confirm(`ATENÇÃO: Tem certeza que deseja ELIMINAR PERMANENTEMENTE os ${selectedUsers.length} usuários selecionados? Esta ação não pode ser desfeita.`)) return;
+
+        setLoading(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const user of selectedUsers) {
+            try {
+                const authHeaders = authService.getAuthHeaders();
+                const response = await fetch(`${API_URL}/users/${user.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ confirmEmail: user.email })
+                });
+
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+
+        setSelectedUsers([]);
+        fetchUsers();
+        alert(`${successCount} usuários eliminados com sucesso. ${errorCount > 0 ? `(${errorCount} falharam).` : ''}`);
+    };
+
     const formatDate = (dateString: string | null) => {
         if (!dateString) return 'Nunca';
         return new Date(dateString).toLocaleDateString('pt-PT', {
@@ -216,6 +264,14 @@ export const AdminUsers: React.FC = () => {
                             </svg>
                         </form>
 
+                        {selectedUsers.length > 0 && (
+                            <button
+                                onClick={handleDeleteSelected}
+                                className="text-sm font-bold text-red-600 bg-red-100 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors whitespace-nowrap border border-red-200"
+                            >
+                                Eliminar ({selectedUsers.length})
+                            </button>
+                        )}
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="text-sm font-bold text-white bg-brand-600 px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-lg shadow-brand-600/20 whitespace-nowrap"
@@ -225,10 +281,18 @@ export const AdminUsers: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="overflow-hidden bg-white rounded-2xl border border-slate-100">
-                    <table className="w-full text-left text-sm text-slate-600">
+                <div className="overflow-x-auto bg-white rounded-2xl border border-slate-100">
+                    <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                         <thead className="bg-slate-50 text-slate-900 font-bold border-b border-slate-100">
                             <tr>
+                                <th className="px-6 py-4 w-12">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={users.length > 0 && selectedUsers.length === users.length}
+                                        onChange={handleToggleSelectAll}
+                                        className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-6 py-4">Usuário / Email</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">Plano</th>
@@ -240,20 +304,28 @@ export const AdminUsers: React.FC = () => {
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full mx-auto mb-2"></div>
                                         Carregando usuários...
                                     </td>
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         Nenhum usuário encontrado.
                                     </td>
                                 </tr>
                             ) : (
                                 users.map((user) => (
                                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedUsers.some(u => u.id === user.id)}
+                                                onChange={() => handleToggleSelectUser(user)}
+                                                className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 uppercase">
@@ -307,10 +379,10 @@ export const AdminUsers: React.FC = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteUser(user)}
-                                                    className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                                                    className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                                                     title="Eliminar usuário"
                                                 >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                 </button>
